@@ -1,0 +1,31 @@
+{
+  "name": "enabler",
+  "private": true,
+  "version": "4.5.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --port 3000",
+    "start": "serve public -l 8080 --cors",
+    "test": "jest --detectOpenHandles",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "serve": "npm run build && serve public -l 3000 --cors"
+  },
+  "dependencies": {
+    "serve": "14.2.4"
+  },
+  "devDependencies": {
+    "@types/node": "24.1.0",
+    "jest": "30.0.5",
+    "sass": "1.89.2",
+    "ts-jest": "^29.4.0",
+    "ts-node": "^10.9.2",
+    "typescript": "5.8.3",
+    "vite": "7.0.6",
+    "vite-plugin-css-injected-by-js": "3.5.2"
+  },
+  "overrides": {
+    "path-to-regexp": "3.3.0",
+    "esbuild": "^0.24.0"
+  }
+}
