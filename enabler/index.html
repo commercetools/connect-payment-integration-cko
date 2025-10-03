@@ -33,7 +33,7 @@
               <div class="form-group col-md-6">
                 <div>
                   <label for="cartId">Cart ID:</label>
-                  <input type="text" class="form-control" id="cartId" />
+                  <input type="text" class="form-control" id="cartId" value="7c4ec942-2510-44f5-9ec6-917457748443" />
                 </div>
               </div>
               <div class="form-group col-md-6">
@@ -64,26 +64,26 @@
             document.addEventListener("DOMContentLoaded", async () => {
               const paymentMethodSelect =
                 document.getElementById("paymentMethod");
-              const response = await fetch("http://localhost:9002/jwt/token", {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                  iss: "https://issuer.com",
-                  sub: "test-sub",
-                  "https://issuer.com/claims/project_key": `${__VITE_CTP_PROJECT_KEY__}`,
-                }),
-              });
+              // const response = await fetch("http://localhost:9002/jwt/token", {
+              //   method: "POST",
+              //   headers: {
+              //     "Content-Type": "application/json",
+              //   },
+              //   body: JSON.stringify({
+              //     iss: "https://issuer.com",
+              //     sub: "test-sub",
+              //     "https://issuer.com/claims/project_key": `${__VITE_CTP_PROJECT_KEY__}`,
+              //   }),
+              // });
 
-              const jsonWebToken = await response.json();
+              // const jsonWebToken = await response.json();
 
               const res = await fetch(
                 `${__VITE_PROCESSOR_URL__}/operations/payment-components`,
                 {
                   method: "GET",
                   headers: {
-                    Authorization: `Bearer ${jsonWebToken.token}`,
+                    // Authorization: `Bearer ${jsonWebToken.token}`,
                   },
                 }
               );

@@ -13,17 +13,13 @@ export const config = {
   // Required by logger
   loggerLevel: process.env.LOGGER_LEVEL || 'info',
 
-  // Update with specific payment providers config
-  mockClientKey: process.env.MOCK_CLIENT_KEY,
-  mockEnvironment: process.env.MOCK_ENVIRONMENT,
-
   // Payment Providers config
-  returnUrl: process.env.RETURN_URL,
-
-  // TODO review these configurations
-  // supportedUIElements: convertStringCommaSeparatedValuesToArray(process.env.SUPPORTED_UI_ELEMENTS),
-  // enableStoreDetails: process.env.ENABLE_STORE_DETAILS === 'true' ? true : false,
-  // sellerReturnUrl: process.env.SELLER_RETURN_URL || ''
+  merchantReturnUrl: process.env.MERCHANT_RETURN_URL || 'http://localhost:3000/checkout',
+  ckoEnvironment: process.env.CKO_ENVIRONMENT || 'sandbox',
+  ckoPublicKey: process.env.CKO_PUBLIC_KEY || 'ckoPublicKey',
+  ckoSecretKey: process.env.CKO_SECRET_KEY || 'ckoSecretKey',
+  ckoChannelId: process.env.CKO_CHANNEL_ID || 'ckoChannelId',
+  ckoHmacKey: process.env.CKO_HMAC_KEY || 'ckoHmacKey',
 };
 
 export const getConfig = () => {

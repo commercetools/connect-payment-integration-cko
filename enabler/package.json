@@ -1,7 +1,7 @@
 {
   "name": "enabler",
   "private": true,
-  "version": "4.5.0",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite --port 3000",
@@ -12,14 +12,15 @@
     "serve": "npm run build && serve public -l 3000 --cors"
   },
   "dependencies": {
+    "@checkout.com/checkout-web-components": "1.4.0",
     "serve": "14.2.4"
   },
   "devDependencies": {
     "@types/node": "24.1.0",
     "jest": "30.0.5",
     "sass": "1.89.2",
-    "ts-jest": "^29.4.0",
-    "ts-node": "^10.9.2",
+    "ts-jest": "29.4.0",
+    "ts-node": "10.9.2",
     "typescript": "5.8.3",
     "vite": "7.0.6",
     "vite-plugin-css-injected-by-js": "3.5.2"

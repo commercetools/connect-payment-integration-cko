@@ -1,7 +1,8 @@
+import { HmacAuthHook } from '../libs/fastify/hooks/hmac-auth.hook';
 import { paymentSDK } from '../payment-sdk';
-import { MockPaymentService } from '../services/mock-payment.service';
+import { CkoPaymentService } from '../services/cko-payment.service';
 
-const paymentService = new MockPaymentService({
+const paymentService = new CkoPaymentService({
   ctCartService: paymentSDK.ctCartService,
   ctPaymentService: paymentSDK.ctPaymentService,
 });
@@ -9,5 +10,8 @@ const paymentService = new MockPaymentService({
 export const app = {
   services: {
     paymentService,
+  },
+  hooks: {
+    hmacAuthHook: new HmacAuthHook(),
   },
 };

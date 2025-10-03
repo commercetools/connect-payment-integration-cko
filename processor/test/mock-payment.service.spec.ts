@@ -52,13 +52,13 @@ describe('mock-payment.service', () => {
   });
 
   test('getConfig', async () => {
-    // Setup mock config for a system using `clientKey`
+    // Setup mock config for a system using `publicKey`
     setupMockConfig({ mockClientKey: '', mockEnvironment: 'test' });
 
     const result: ConfigResponse = await paymentService.config();
 
     // Assertions can remain the same or be adapted based on the abstracted access
-    expect(result?.clientKey).toStrictEqual('');
+    expect(result?.publicKey).toStrictEqual('');
     expect(result?.environment).toStrictEqual('test');
   });
 
