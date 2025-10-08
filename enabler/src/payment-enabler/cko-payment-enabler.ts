@@ -14,6 +14,9 @@ import {
   PaymentEnabler,
   PaymentResult,
 } from "./payment-enabler";
+import { GooglePayBuilder } from "../components/payment-methods/card/googlepay";
+import { PayPalBuilder } from "../components/payment-methods/card/paypal";
+import { SepaBuilder } from "../components/payment-methods/card/sepa";
 
 declare global {
   interface ImportMeta {
@@ -132,6 +135,9 @@ export class CkoPaymentEnabler implements PaymentEnabler {
 
     const supportedMethods = {
       card: CardBuilder,
+      googlepay: GooglePayBuilder,
+      paypal: PayPalBuilder,
+      sepa: SepaBuilder,
     };
 
     if (!Object.keys(supportedMethods).includes(type)) {

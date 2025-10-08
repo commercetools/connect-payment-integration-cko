@@ -1,12 +1,17 @@
-import { SessionHeaderAuthenticationHook, SessionQueryParamAuthenticationHook } from '@commercetools/connect-payments-sdk';
+import {
+  SessionHeaderAuthenticationHook,
+  SessionQueryParamAuthenticationHook,
+} from '@commercetools/connect-payments-sdk';
 import { FastifyInstance, FastifyPluginOptions } from 'fastify';
-import { SubmitPaymentSessionRequestDTO, SubmitPaymentSessionResponseDTO } from '../dtos/cko-payment.dto';
+import {
+  PaymentSessionResponseDTO,
+  SubmitPaymentSessionRequestDTO,
+  SubmitPaymentSessionResponseDTO,
+} from '../dtos/cko-payment.dto';
 import { CkoPaymentService } from '../services/cko-payment.service';
 import { HmacAuthHook } from '../libs/fastify/hooks/hmac-auth.hook';
 import { rawBodyPlugin } from '../libs/fastify/hooks/raw-body.hook';
 import { CkoWebhookEvent } from '../clients/types/webhook.type';
-import { PaymentSessionRequest } from '../clients/types/payment-session.type';
-import { PaymentSessionResponse } from 'checkout-sdk-node';
 
 type PaymentRoutesOptions = {
   paymentService: CkoPaymentService;
@@ -20,7 +25,7 @@ type NotificationRoutesOptions = {
 };
 
 export const paymentRoutes = async (fastify: FastifyInstance, opts: FastifyPluginOptions & PaymentRoutesOptions) => {
-  fastify.post<{ Body: PaymentSessionRequest; Reply: PaymentSessionResponse }>(
+  fastify.post<{ Reply: PaymentSessionResponseDTO }>(
     '/payment-sessions',
     {
       preHandler: [opts.sessionHeaderAuthHook.authenticate()],

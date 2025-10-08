@@ -46,6 +46,7 @@ import { CkoWebhookEvent } from '../clients/types/webhook.type';
 import { NotificationConverter } from './converters/notification.converter';
 import { UnsupportedNotificationError } from '../errors/cko-api.error';
 import { CkoPaymentServiceOptions } from './types/cko-payment.type';
+import { randomUUID } from 'crypto';
 
 export class CkoPaymentService extends AbstractPaymentService {
   private paymentComponentsConverter: PaymentComponentsConverter;
@@ -80,7 +81,7 @@ export class CkoPaymentService extends AbstractPaymentService {
   public async config(): Promise<ConfigResponse> {
     const config = getConfig();
     return {
-      publicKey: config.ckoPublicKey,
+      publicKey: config.getPublicKey(),
       environment: config.ckoEnvironment,
     };
   }
@@ -405,7 +406,7 @@ export class CkoPaymentService extends AbstractPaymentService {
       amountPlanned,
       paymentMethodInfo: {
         paymentInterface: 'checkout-cko',
-        interfaceAccount: config.ckoChannelId,
+        interfaceAccount: getConfig().getChannelId(),
       },
       checkoutTransactionItemId: getPaymentInterfaceFromContext(),
       ...(ctCart.customerId && {
@@ -435,6 +436,26 @@ export class CkoPaymentService extends AbstractPaymentService {
 
     try {
       const res = await getCheckoutApiClient().paymentSessions.createPaymentSession(ckoRequestData);
+
+      await this.ctPaymentService.updatePayment({
+        id: ctPayment.id,
+        pspInteractions: [
+          {
+            type: {
+              typeId: 'type',
+              key: 'ctcheckout-payment-interface-interaction-type',
+            },
+            fields: {
+              interactionId: randomUUID(),
+              type: 'CreatePaymentSession',
+              createdAt: new Date().toISOString(),
+              request: JSON.stringify(ckoRequestData),
+              response: JSON.stringify(res),
+            },
+          },
+        ],
+      });
+
       return this.createPaymentSessionConverter.convertResponse({ responseData: res, payment: ctPayment });
     } catch (e) {
       console.error('Error creating payment session:', e);
@@ -467,6 +488,21 @@ export class CkoPaymentService extends AbstractPaymentService {
           interfaceId: response.id,
           state: this.convertPaymentStatus(response.status),
         },
+        pspInteractions: [
+          {
+            type: {
+              typeId: 'type',
+              key: 'ctcheckout-payment-interface-interaction-type',
+            },
+            fields: {
+              interactionId: randomUUID(),
+              type: 'SubmitPaymentSession',
+              createdAt: new Date().toISOString(),
+              request: JSON.stringify(ckoRequestData),
+              response: JSON.stringify(res),
+            },
+          },
+        ],
       });
 
       log.info('Payment session submitted', {
@@ -500,6 +536,21 @@ export class CkoPaymentService extends AbstractPaymentService {
         interfaceId: opts.ckoPaymentId,
         state: opts.isSuccess ? 'Success' : 'Failure',
       },
+      pspInteractions: [
+        {
+          type: {
+            typeId: 'type',
+            key: 'ctcheckout-payment-interface-interaction-type',
+          },
+          fields: {
+            interactionId: randomUUID(),
+            type: 'ConfirmPaymentSession',
+            createdAt: new Date().toISOString(),
+            request: JSON.stringify({ ckoPaymentId: opts.ckoPaymentId, isSuccess: opts.isSuccess }),
+            response: JSON.stringify({}),
+          },
+        },
+      ],
     });
 
     log.info(`Payment confirmation processed.`, {
@@ -524,7 +575,7 @@ export class CkoPaymentService extends AbstractPaymentService {
       const updatedPayment = await this.ctPaymentService.updatePayment({
         id: updateData.paymentId,
         ...(updateData.pspReference && { pspReference: updateData.pspReference }),
-        ...(updateData.paymentMethod && { paymentMethod: updateData.paymentMethod }),
+        ...(updateData.paymentMethodInfo && { paymentMethodInfo: updateData.paymentMethodInfo }),
         transaction: updateData.transaction,
       });
 
@@ -532,7 +583,7 @@ export class CkoPaymentService extends AbstractPaymentService {
         paymentId: updatedPayment.id,
         version: updatedPayment.version,
         pspReference: updateData.pspReference,
-        paymentMethod: updateData.paymentMethod,
+        paymentMethod: updateData.paymentMethodInfo,
         transaction: JSON.stringify(updateData.transaction),
       });
     } catch (e) {

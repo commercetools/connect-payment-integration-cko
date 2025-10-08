@@ -3,6 +3,7 @@ import { fastifyRequestContext, requestContext } from '@fastify/request-context'
 import { randomUUID } from 'crypto';
 import { FastifyInstance, FastifyRequest } from 'fastify';
 import fp from 'fastify-plugin';
+import { CkoConfig } from '../../../config/config';
 
 export type ContextData = {
   anonymousId?: string;
@@ -16,6 +17,7 @@ export type ContextData = {
   correlationId: string;
   requestId: string;
   authentication?: paymentSdk.Authentication;
+  ckoConfigKey?: string;
 };
 
 export const getRequestContext = (): Partial<ContextData> => {
@@ -67,6 +69,11 @@ export const getMerchantReturnUrlFromContext = (): string | undefined => {
 export const getFutureOrderNumberFromContext = (): string | undefined => {
   const contextData = getRequestContext() as ContextData;
   return paymentSdk.getFutureOrderNumberFromContext(contextData);
+};
+
+export const getCkoConfigKeyFromContext = (): string | undefined => {
+  const contextData = getRequestContext() as ContextData;
+  return contextData.ckoConfigKey;
 };
 
 export const requestContextPlugin = fp(async (fastify: FastifyInstance) => {

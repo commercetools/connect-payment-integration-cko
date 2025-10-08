@@ -13,6 +13,12 @@ export enum CkoPaymentStatus {
   ACTION_REQUIRED = 'Action Required',
 }
 
+export type CkoLineItems = {
+  name: string;
+  quantity: number;
+  unit_price: number;
+};
+
 export interface PaymentSessionRequest {
   amount: number;
   currency: string;
@@ -33,7 +39,7 @@ export interface PaymentSessionRequest {
     tax_number?: string;
   };
   billing: {
-    address?: CkoAddress;
+    address: CkoAddress;
     phone?: {
       country_code?: string;
       number: string;
@@ -67,6 +73,7 @@ export interface PaymentSessionRequest {
       version: string;
     };
   };
+  items?: CkoLineItems[];
   [key: string]: unknown;
 }
 

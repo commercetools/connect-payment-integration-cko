@@ -1,10 +1,17 @@
 import { Address, Cart, Payment } from '@commercetools/connect-payments-sdk';
-import { CkoAddress, PaymentSessionRequest, PaymentSessionResponse } from '../../clients/types/payment-session.type';
-import { config } from '../../config/config';
 import {
+  CkoAddress,
+  CkoLineItems,
+  PaymentSessionRequest,
+  PaymentSessionResponse,
+} from '../../clients/types/payment-session.type';
+import { config, getConfig } from '../../config/config';
+import {
+  getAllowedPaymentMethodsFromContext,
   getCtSessionIdFromContext,
   getFutureOrderNumberFromContext,
   getProcessorUrlFromContext,
+  getRequestContext,
 } from '../../libs/fastify/context/context';
 import { paymentSDK } from '../../payment-sdk';
 import { PaymentSessionResponseDTO } from '../../dtos/cko-payment.dto';
@@ -14,8 +21,9 @@ export class CreatePaymentSessionConverter {
     const { cart, payment } = opts;
     const futureOrderNumber = getFutureOrderNumberFromContext();
     const deliveryAddress = paymentSDK.ctCartService.getOneShippingAddress({ cart: opts.cart });
+
     return {
-      processing_channel_id: config.ckoChannelId,
+      processing_channel_id: getConfig().getChannelId(),
       amount: payment.amountPlanned.centAmount,
       currency: payment.amountPlanned.currencyCode,
       reference: payment.id,
@@ -33,10 +41,11 @@ export class CreatePaymentSessionConverter {
           email: cart.customerEmail,
         },
       }),
-      '3ds': { enabled: true },
+      '3ds': { enabled: getConfig().getEnableThreeDS() },
       metadata: {
         cart_id: cart.id,
         payment_id: payment.id,
+        correlation_id: getRequestContext().correlationId!,
         ...(futureOrderNumber && { merchant_order_reference: futureOrderNumber }),
       },
       integration: {
@@ -45,6 +54,8 @@ export class CreatePaymentSessionConverter {
           version: '1.0.0',
         },
       },
+      items: this.convertCartItems(cart),
+      enabled_payment_methods: getAllowedPaymentMethodsFromContext(),
     };
   }
 
@@ -72,5 +83,35 @@ export class CreatePaymentSessionConverter {
       state: address.region,
       zip: address.postalCode,
     };
+  }
+
+  private convertCartItems(cart: Cart): CkoLineItems[] {
+    const items: CkoLineItems[] = [];
+    // TODO: take into account gift cards
+    const cartTotalPrice = cart.taxedPrice?.totalGross.centAmount || cart.totalPrice.centAmount;
+    let totalPrice = 0;
+
+    //TODO: fix this
+    cart.lineItems.forEach((i) => {
+      const quantity = i.quantity;
+      // const unitPrice = (i.taxedPrice?.totalGross.centAmount || i.totalPrice.centAmount) / quantity;
+      const unitPrice = cartTotalPrice;
+      totalPrice += unitPrice * quantity;
+      items.push({
+        name: Object.values(i.name)[0],
+        quantity,
+        unit_price: unitPrice,
+      });
+    });
+
+    if (totalPrice != cartTotalPrice) {
+      items.push({
+        name: 'Adjustment',
+        quantity: 1,
+        unit_price: cartTotalPrice - totalPrice,
+      });
+    }
+
+    return items;
   }
 }

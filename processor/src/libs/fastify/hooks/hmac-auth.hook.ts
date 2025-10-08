@@ -1,4 +1,4 @@
-import { config } from '../../../config/config';
+import { config, getConfig } from '../../../config/config';
 import { FastifyRequest } from 'fastify';
 import { ErrorAuthErrorResponse } from '@commercetools/connect-payments-sdk';
 import crypto from 'crypto';
@@ -22,7 +22,7 @@ export class HmacAuthHook {
   }
 
   private verifyHmacSignature(rawBody: string, merchantSignature: string): boolean {
-    const expectedSignature = this.calculateHmacSignature(rawBody, config.ckoHmacKey);
+    const expectedSignature = this.calculateHmacSignature(rawBody, getConfig().getHmacKey());
 
     if (expectedSignature?.length !== merchantSignature?.length) {
       return false;

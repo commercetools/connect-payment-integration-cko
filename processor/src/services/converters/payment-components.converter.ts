@@ -5,11 +5,23 @@ export class PaymentComponentsConverter {
     return {
       dropins: [],
       components: [
+        // {
+        //   type: 'applepay',
+        // },
         {
-          type: 'card', 
+          type: 'card',
         },
+        // {
+        //   type: 'ideal',
+        // },
         {
           type: 'googlepay',
+        },
+        {
+          type: 'paypal',
+        },
+        {
+          type: 'sepa',
         },
       ],
     };

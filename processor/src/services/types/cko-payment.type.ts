@@ -1,4 +1,9 @@
-import { CommercetoolsCartService, CommercetoolsPaymentService, TransactionData } from "@commercetools/connect-payments-sdk";
+import {
+  CommercetoolsCartService,
+  CommercetoolsPaymentService,
+  PaymentMethodInfoDraft,
+  TransactionData,
+} from '@commercetools/connect-payments-sdk';
 
 export type CkoPaymentServiceOptions = {
   ctCartService: CommercetoolsCartService;
@@ -9,7 +14,5 @@ export type NotificationUpdatePayment = {
   paymentId: string;
   pspReference?: string;
   transaction: TransactionData;
-  paymentMethod?: string;
+  paymentMethodInfo: PaymentMethodInfoDraft;
 };
-
-

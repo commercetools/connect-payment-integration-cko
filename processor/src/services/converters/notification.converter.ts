@@ -1,4 +1,4 @@
-import { Money, TransactionData } from '@commercetools/connect-payments-sdk';
+import { CustomFieldsDraft, Money, PaymentMethodInfoDraft, TransactionData } from '@commercetools/connect-payments-sdk';
 import { CkoEventType, CkoWebhookEvent } from '../../clients/types/webhook.type';
 import { NotificationUpdatePayment } from '../types/cko-payment.type';
 import { UnsupportedNotificationError } from '../../errors/cko-api.error';
@@ -37,7 +37,7 @@ export class NotificationConverter {
     return {
       paymentId: this.getPaymentId(event),
       pspReference: event.data.id,
-      paymentMethod: event.data.source?.type,
+      paymentMethodInfo: this.convertPaymentMethodInfo(event),
       transaction: {
         type: 'Authorization',
         state: 'Success',
@@ -51,7 +51,7 @@ export class NotificationConverter {
     return {
       paymentId: this.getPaymentId(event),
       pspReference: event.data.id,
-      paymentMethod: event.data.source?.type,
+      paymentMethodInfo: this.convertPaymentMethodInfo(event),
       transaction: {
         type: 'Authorization',
         state: 'Failure',
@@ -65,7 +65,7 @@ export class NotificationConverter {
     return {
       paymentId: this.getPaymentId(event),
       pspReference: event.data.id,
-      paymentMethod: event.data.source?.type,
+      paymentMethodInfo: this.convertPaymentMethodInfo(event),
       transaction: {
         type: 'Authorization',
         state: 'Pending',
@@ -79,7 +79,7 @@ export class NotificationConverter {
     return {
       paymentId: this.getPaymentId(event),
       pspReference: event.data.id,
-      paymentMethod: event.data.source?.type,
+      paymentMethodInfo: this.convertPaymentMethodInfo(event),
       transaction: {
         type: 'Authorization',
         state: 'Failure',
@@ -93,7 +93,7 @@ export class NotificationConverter {
     return {
       paymentId: this.getPaymentId(event),
       pspReference: event.data.id,
-      paymentMethod: event.data.source?.type,
+      paymentMethodInfo: this.convertPaymentMethodInfo(event),
       transaction: {
         type: 'Authorization',
         state: 'Failure',
@@ -107,7 +107,7 @@ export class NotificationConverter {
     return {
       paymentId: this.getPaymentId(event),
       pspReference: event.data.id,
-      paymentMethod: event.data.source?.type,
+      paymentMethodInfo: this.convertPaymentMethodInfo(event),
       transaction: {
         type: 'Charge',
         state: 'Success',
@@ -121,7 +121,7 @@ export class NotificationConverter {
     return {
       paymentId: this.getPaymentId(event),
       pspReference: event.data.id,
-      paymentMethod: event.data.source?.type,
+      paymentMethodInfo: this.convertPaymentMethodInfo(event),
       transaction: {
         type: 'Charge',
         state: 'Failure',
@@ -135,7 +135,7 @@ export class NotificationConverter {
     return {
       paymentId: this.getPaymentId(event),
       pspReference: event.data.id,
-      paymentMethod: event.data.source?.type,
+      paymentMethodInfo: this.convertPaymentMethodInfo(event),
       transaction: {
         type: 'Charge',
         state: 'Pending',
@@ -149,7 +149,7 @@ export class NotificationConverter {
     return {
       paymentId: this.getPaymentId(event),
       pspReference: event.data.id,
-      paymentMethod: event.data.source?.type,
+      paymentMethodInfo: this.convertPaymentMethodInfo(event),
       transaction: {
         type: 'Refund',
         state: 'Success',
@@ -163,7 +163,7 @@ export class NotificationConverter {
     return {
       paymentId: this.getPaymentId(event),
       pspReference: event.data.id,
-      paymentMethod: event.data.source?.type,
+      paymentMethodInfo: this.convertPaymentMethodInfo(event),
       transaction: {
         type: 'Refund',
         state: 'Failure',
@@ -177,7 +177,7 @@ export class NotificationConverter {
     return {
       paymentId: this.getPaymentId(event),
       pspReference: event.data.id,
-      paymentMethod: event.data.source?.type,
+      paymentMethodInfo: this.convertPaymentMethodInfo(event),
       transaction: {
         type: 'Refund',
         state: 'Pending',
@@ -191,7 +191,7 @@ export class NotificationConverter {
     return {
       paymentId: this.getPaymentId(event),
       pspReference: event.data.id,
-      paymentMethod: event.data.source?.type,
+      paymentMethodInfo: this.convertPaymentMethodInfo(event),
       transaction: {
         type: 'CancelAuthorization',
         state: 'Success',
@@ -205,7 +205,7 @@ export class NotificationConverter {
     return {
       paymentId: this.getPaymentId(event),
       pspReference: event.data.id,
-      paymentMethod: event.data.source?.type,
+      paymentMethodInfo: this.convertPaymentMethodInfo(event),
       transaction: {
         type: 'CancelAuthorization',
         state: 'Failure',
@@ -220,7 +220,7 @@ export class NotificationConverter {
     return {
       paymentId: this.getPaymentId(event),
       pspReference: event.data.id,
-      paymentMethod: event.data.source?.type,
+      paymentMethodInfo: this.convertPaymentMethodInfo(event),
       transaction: {
         type: 'CancelAuthorization',
         state: 'Success',
@@ -234,7 +234,7 @@ export class NotificationConverter {
     return {
       paymentId: this.getPaymentId(event),
       pspReference: event.data.id,
-      paymentMethod: event.data.source?.type,
+      paymentMethodInfo: this.convertPaymentMethodInfo(event),
       transaction: {
         type: 'CancelAuthorization',
         state: 'Failure',
@@ -254,4 +254,45 @@ export class NotificationConverter {
       currencyCode: event.data.currency as string,
     };
   }
+
+  private convertPaymentMethodInfo(event: CkoWebhookEvent): PaymentMethodInfoDraft {
+    return {
+      method: event.data.source?.type,
+      ...(event.data.source?.type === 'card' ? { custom: this.convertCardPaymentMethod(event) } : {}),
+    };
+  }
+
+  private convertCardPaymentMethod(event: CkoWebhookEvent): CustomFieldsDraft {
+    return {
+      type: {
+        typeId: 'type',
+        key: 'ctcheckout-card-details-type',
+      },
+      fields: {
+        brand: CKO_CARD_MAPPING.get(event.data.source?.scheme || 'Unknown') || 'Unknown',
+        expiryMonth: event.data.source?.expiry_month,
+        expiryYear: event.data.source?.expiry_year,
+        lastFour: event.data.source?.last_4,
+        bin: event.data.source?.bin,
+        storePaymentMethod: false,
+      },
+    };
+  }
 }
+
+//TODO: complete the mapping
+const CKO_CARD_MAPPING = new Map<string, string>([
+  ['Amex', 'American Express'],
+  ['Bancontact', 'Bancontact'],
+  ['CartesBancaires', 'Cartes Bancaires'],
+  ['Diners', 'Diners Club'],
+  ['Discover', 'Discover'],
+  ['EftposAu', 'Eftpos AU'],
+  ['Jcb', 'JCB'],
+  ['Link', 'Link'],
+  ['Maestro', 'Maestro'],
+  ['Mastercard', 'Mastercard'],
+  ['UnionPay', 'UnionPay'],
+  ['VISA', 'Visa'],
+  ['Unknown', 'Unknown'],
+]);

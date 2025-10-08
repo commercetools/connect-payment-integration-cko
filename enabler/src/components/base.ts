@@ -12,6 +12,7 @@ export type ElementOptions = {
   paymentMethod: PaymentMethod;
 };
 
+
 /**
  * Base Web Component
  */

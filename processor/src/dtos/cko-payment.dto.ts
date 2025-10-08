@@ -1,4 +1,3 @@
-import { Static, Type } from '@sinclair/typebox';
 import {
   PaymentSessionResponse,
   SubmitPaymentSessionRequest,
@@ -30,6 +29,6 @@ export type SubmitPaymentSessionResponseDTO = SubmitPaymentSessionResponse & {
 };
 
 export type PaymentConfirmResponseDTO = {
-  paymentReference: string; 
+  paymentReference: string;
   merchantReturnUrl: string;
-}
+};

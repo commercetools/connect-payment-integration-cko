@@ -43,7 +43,13 @@ export type CkoWebhookEvent = {
     };
     source?: {
       id?: string;
-      type?: string;
+      type: string;
+      expiry_month?: number;
+      expiry_year?: number;
+      scheme?: string;
+      bin?: string;
+      last_4?: string;
+      card_wallet_type?: string;
       [key: string]: unknown;
     };
   };
