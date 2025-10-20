@@ -6,6 +6,9 @@ export class PaymentComponentsConverter {
       dropins: [],
       components: [
         {
+          type: 'ach',
+        },
+        {
           type: 'alma',
         },
         {

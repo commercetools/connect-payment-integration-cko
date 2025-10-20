@@ -42,6 +42,7 @@ const getSessionId = async (cartId) => {
     processorUrl: __VITE_PROCESSOR_URL__,
     paymentInterface: "cko-test",
     allowedPaymentMethods: [
+      "ach",
       "alma",
       "applepay",
       "bizum",

@@ -12,6 +12,9 @@ export type PaymentMethodConfig = {
 };
 
 export const paymentMethodConfig: PaymentMethodConfig = {
+  ach: {
+    supportSeparateCapture: false,
+  },
   alma: {
     supportSeparateCapture: false,
   },

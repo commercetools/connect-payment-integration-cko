@@ -27,6 +27,7 @@ import { AlmaBuilder } from "../components/payment-methods/alma";
 import { ApplePayBuilder } from "../components/payment-methods/applepay";
 import { MBWayBuilder } from "../components/payment-methods/mbway";
 import { PaymentApi } from "../api/api.client";
+import { ACHBuilder } from "../components/payment-methods/ach";
 
 declare global {
   interface ImportMeta {
@@ -126,6 +127,7 @@ export class CkoPaymentEnabler implements PaymentEnabler {
     await this.initializeCkoComponents();
 
     const supportedMethods = {
+      ach: ACHBuilder,
       alma: AlmaBuilder,
       applepay: ApplePayBuilder,
       bizum: BizumBuilder,

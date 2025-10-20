@@ -152,6 +152,8 @@ export type EnablerOptions = {
  * Represents the payment method code.
  */
 export enum PaymentMethod {
+  /* ACH */
+  ach = "ach",
   /* Alma */
   alma = "alma",
   /* Apple Pay */

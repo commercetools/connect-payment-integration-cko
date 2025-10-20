@@ -11,6 +11,7 @@ export const convertAllowedPaymentMethodsToCkoFormat = (): string[] => {
 };
 
 const PAYMENT_METHOD_TO_CKO_MAPPING: Record<string, string> = {
+  ach: 'plaid',
   przelewy24: 'p24',
 };
 

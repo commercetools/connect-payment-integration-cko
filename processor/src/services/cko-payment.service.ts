@@ -443,6 +443,8 @@ export class CkoPaymentService extends AbstractPaymentService {
     try {
       const res = await getCheckoutApiClient().paymentSessions.createPaymentSession(ckoRequestData);
 
+      console.log('Payment session created with response:', JSON.stringify(res, null, 2));
+
       await this.ctPaymentService.updatePayment({
         id: ctPayment.id,
         pspInteractions: [
