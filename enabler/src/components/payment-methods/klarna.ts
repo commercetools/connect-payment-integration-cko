@@ -3,24 +3,24 @@ import {
   PaymentComponent,
   PaymentComponentBuilder,
   PaymentMethod,
-} from "../../../payment-enabler/payment-enabler.ts";
-import { BaseComponent } from "../../base.ts";
-import { BaseOptions } from "../../../payment-enabler/cko-payment-enabler.ts";
+} from "../../payment-enabler/payment-enabler.ts";
+import { BaseComponent } from "../base.ts";
+import { BaseOptions } from "../../payment-enabler/cko-payment-enabler.ts";
 import { Component } from "@checkout.com/checkout-web-components";
 
-export class SepaBuilder implements PaymentComponentBuilder {
+export class KlarnaBuilder implements PaymentComponentBuilder {
   public componentHasSubmit = true;
 
   constructor(private baseOptions: BaseOptions) {}
   
   build(config: ComponentOptions): PaymentComponent {
-    const cmp = new Sepa(this.baseOptions, config);
+    const cmp = new Klarna(this.baseOptions, config);
     cmp.init();
     return cmp;
   }
 }
 
-export class Sepa extends BaseComponent {
+export class Klarna extends BaseComponent {
   private showPayButton: boolean;
   private component: Component;
 
@@ -30,7 +30,7 @@ export class Sepa extends BaseComponent {
   }
 
   init(): void {
-    this.component = this.ckoWebComponents.create("sepa", {
+    this.component = this.ckoWebComponents.create("klarna", {
       showPayButton: this.showPayButton,
     });
   }
@@ -39,7 +39,7 @@ export class Sepa extends BaseComponent {
   async mount(selector: string) {
     const isAvailable = await this.component.isAvailable();
     if (!isAvailable) {
-      throw new Error("Sepa component is not available");
+      throw new Error("Klarna component is not available");
     }
 
     this.component.mount(selector);

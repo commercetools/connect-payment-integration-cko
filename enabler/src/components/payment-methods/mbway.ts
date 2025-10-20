@@ -3,38 +3,43 @@ import {
   PaymentComponent,
   PaymentComponentBuilder,
   PaymentMethod,
-} from "../../../payment-enabler/payment-enabler.ts";
-import { BaseComponent } from "../../base.ts";
-import { BaseOptions } from "../../../payment-enabler/cko-payment-enabler.ts";
+} from "../../payment-enabler/payment-enabler.ts";
+import { BaseComponent } from "../base.ts";
+import { BaseOptions } from "../../payment-enabler/cko-payment-enabler.ts";
 import { Component } from "@checkout.com/checkout-web-components";
 
-export class ApplePayBuilder implements PaymentComponentBuilder {
-  public componentHasSubmit = false;
+export class MBWayBuilder implements PaymentComponentBuilder {
+  public componentHasSubmit = true;
 
   constructor(private baseOptions: BaseOptions) {}
-
+  
   build(config: ComponentOptions): PaymentComponent {
-    const cmp = new ApplePay(this.baseOptions, config);
+    const cmp = new MBWay(this.baseOptions, config);
     cmp.init();
     return cmp;
   }
 }
 
-export class ApplePay extends BaseComponent {
+export class MBWay extends BaseComponent {
+  private showPayButton: boolean;
   private component: Component;
 
   constructor(baseOptions: BaseOptions, componentOptions: ComponentOptions) {
-    super(PaymentMethod.applepay, baseOptions, componentOptions);
+    super(PaymentMethod.mbway, baseOptions, componentOptions);
+    this.showPayButton = componentOptions?.showPayButton ?? false;
   }
 
   init(): void {
-    this.component = this.ckoWebComponents.create("applepay", {});
+    this.component = this.ckoWebComponents.create("mbway", {
+      showPayButton: this.showPayButton,
+    });
   }
+
 
   async mount(selector: string) {
     const isAvailable = await this.component.isAvailable();
     if (!isAvailable) {
-      throw new Error("Apple Pay component is not available");
+      throw new Error("MBWay component is not available");
     }
 
     this.component.mount(selector);

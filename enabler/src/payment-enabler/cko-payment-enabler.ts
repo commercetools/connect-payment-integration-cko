@@ -1,4 +1,4 @@
-import { CardBuilder } from "../components/payment-methods/card/card";
+import { CardBuilder } from "../components/payment-methods/card";
 import {
   loadCheckoutWebComponents,
   CheckoutWebComponents,
@@ -14,18 +14,18 @@ import {
   PaymentEnabler,
   PaymentResult,
 } from "./payment-enabler";
-import { GooglePayBuilder } from "../components/payment-methods/card/googlepay";
-import { PayPalBuilder } from "../components/payment-methods/card/paypal";
-import { SepaBuilder } from "../components/payment-methods/card/sepa";
+import { GooglePayBuilder } from "../components/payment-methods/googlepay";
+import { PayPalBuilder } from "../components/payment-methods/paypal";
+import { SepaBuilder } from "../components/payment-methods/sepa";
 import { convertToCkoLocale } from "../converters/locale.converter";
-import { EPSBuilder } from "../components/payment-methods/card/eps";
-import { KlarnaBuilder } from "../components/payment-methods/card/klarna";
-import { BizumBuilder } from "../components/payment-methods/card/bizum";
-import { IdealBuilder } from "../components/payment-methods/card/ideal";
-import { Przelewy24Builder } from "../components/payment-methods/card/przelewy24";
-import { AlmaBuilder } from "../components/payment-methods/card/alma";
-import { ApplePayBuilder } from "../components/payment-methods/card/applepay";
-import { MBWayBuilder } from "../components/payment-methods/card/mbway";
+import { EPSBuilder } from "../components/payment-methods/eps";
+import { KlarnaBuilder } from "../components/payment-methods/klarna";
+import { BizumBuilder } from "../components/payment-methods/bizum";
+import { IdealBuilder } from "../components/payment-methods/ideal";
+import { Przelewy24Builder } from "../components/payment-methods/przelewy24";
+import { AlmaBuilder } from "../components/payment-methods/alma";
+import { ApplePayBuilder } from "../components/payment-methods/applepay";
+import { MBWayBuilder } from "../components/payment-methods/mbway";
 import { PaymentApi } from "../api/api.client";
 
 declare global {

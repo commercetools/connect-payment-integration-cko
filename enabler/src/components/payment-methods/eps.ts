@@ -3,42 +3,43 @@ import {
   PaymentComponent,
   PaymentComponentBuilder,
   PaymentMethod,
-} from "../../../payment-enabler/payment-enabler";
-import { BaseComponent } from "../../base";
-import { BaseOptions } from "../../../payment-enabler/cko-payment-enabler.ts";
+} from "../../payment-enabler/payment-enabler.ts";
+import { BaseComponent } from "../base.ts";
+import { BaseOptions } from "../../payment-enabler/cko-payment-enabler.ts";
 import { Component } from "@checkout.com/checkout-web-components";
 
-export class CardBuilder implements PaymentComponentBuilder {
+export class EPSBuilder implements PaymentComponentBuilder {
   public componentHasSubmit = true;
 
   constructor(private baseOptions: BaseOptions) {}
-
+  
   build(config: ComponentOptions): PaymentComponent {
-    const cmp = new Card(this.baseOptions, config);
+    const cmp = new EPS(this.baseOptions, config);
     cmp.init();
     return cmp;
   }
 }
 
-export class Card extends BaseComponent {
+export class EPS extends BaseComponent {
   private showPayButton: boolean;
   private component: Component;
 
   constructor(baseOptions: BaseOptions, componentOptions: ComponentOptions) {
-    super(PaymentMethod.card, baseOptions, componentOptions);
+    super(PaymentMethod.eps, baseOptions, componentOptions);
     this.showPayButton = componentOptions?.showPayButton ?? false;
   }
 
   init(): void {
-    this.component = this.ckoWebComponents.create("card", {
+    this.component = this.ckoWebComponents.create("eps", {
       showPayButton: this.showPayButton,
     });
   }
 
+
   async mount(selector: string) {
     const isAvailable = await this.component.isAvailable();
     if (!isAvailable) {
-      throw new Error("Card component is not available");
+      throw new Error("EPS component is not available");
     }
 
     this.component.mount(selector);

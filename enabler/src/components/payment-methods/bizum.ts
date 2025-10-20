@@ -3,34 +3,34 @@ import {
   PaymentComponent,
   PaymentComponentBuilder,
   PaymentMethod,
-} from "../../../payment-enabler/payment-enabler.ts";
-import { BaseComponent } from "../../base.ts";
-import { BaseOptions } from "../../../payment-enabler/cko-payment-enabler.ts";
+} from "../../payment-enabler/payment-enabler.ts";
+import { BaseComponent } from "../base.ts";
+import { BaseOptions } from "../../payment-enabler/cko-payment-enabler.ts";
 import { Component } from "@checkout.com/checkout-web-components";
 
-export class IdealBuilder implements PaymentComponentBuilder {
+export class BizumBuilder implements PaymentComponentBuilder {
   public componentHasSubmit = true;
 
   constructor(private baseOptions: BaseOptions) {}
   
   build(config: ComponentOptions): PaymentComponent {
-    const cmp = new Ideal(this.baseOptions, config);
+    const cmp = new Bizum(this.baseOptions, config);
     cmp.init();
     return cmp;
   }
 }
 
-export class Ideal extends BaseComponent {
+export class Bizum extends BaseComponent {
   private showPayButton: boolean;
   private component: Component;
 
   constructor(baseOptions: BaseOptions, componentOptions: ComponentOptions) {
-    super(PaymentMethod.ideal, baseOptions, componentOptions);
+    super(PaymentMethod.bizum, baseOptions, componentOptions);
     this.showPayButton = componentOptions?.showPayButton ?? false;
   }
 
   init(): void {
-    this.component = this.ckoWebComponents.create("ideal", {
+    this.component = this.ckoWebComponents.create("bizum", {
       showPayButton: this.showPayButton,
     });
   }
@@ -39,7 +39,7 @@ export class Ideal extends BaseComponent {
   async mount(selector: string) {
     const isAvailable = await this.component.isAvailable();
     if (!isAvailable) {
-      throw new Error("Ideal component is not available");
+      throw new Error("Bizum component is not available");
     }
 
     this.component.mount(selector);

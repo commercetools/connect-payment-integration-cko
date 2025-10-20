@@ -3,43 +3,38 @@ import {
   PaymentComponent,
   PaymentComponentBuilder,
   PaymentMethod,
-} from "../../../payment-enabler/payment-enabler.ts";
-import { BaseComponent } from "../../base.ts";
-import { BaseOptions } from "../../../payment-enabler/cko-payment-enabler.ts";
+} from "../../payment-enabler/payment-enabler.ts";
+import { BaseComponent } from "../base.ts";
+import { BaseOptions } from "../../payment-enabler/cko-payment-enabler.ts";
 import { Component } from "@checkout.com/checkout-web-components";
 
-export class Przelewy24Builder implements PaymentComponentBuilder {
-  public componentHasSubmit = true;
+export class GooglePayBuilder implements PaymentComponentBuilder {
+  public componentHasSubmit = false;
 
   constructor(private baseOptions: BaseOptions) {}
-  
+
   build(config: ComponentOptions): PaymentComponent {
-    const cmp = new Przelewy24(this.baseOptions, config);
+    const cmp = new GooglePay(this.baseOptions, config);
     cmp.init();
     return cmp;
   }
 }
 
-export class Przelewy24 extends BaseComponent {
-  private showPayButton: boolean;
+export class GooglePay extends BaseComponent {
   private component: Component;
 
   constructor(baseOptions: BaseOptions, componentOptions: ComponentOptions) {
-    super(PaymentMethod.przelewy24, baseOptions, componentOptions);
-    this.showPayButton = componentOptions?.showPayButton ?? false;
+    super(PaymentMethod.googlepay, baseOptions, componentOptions);
   }
 
   init(): void {
-    this.component = this.ckoWebComponents.create("p24", {
-      showPayButton: this.showPayButton,
-    });
+    this.component = this.ckoWebComponents.create("googlepay", {});
   }
-
 
   async mount(selector: string) {
     const isAvailable = await this.component.isAvailable();
     if (!isAvailable) {
-      throw new Error("Przelewy24 component is not available");
+      throw new Error("Google Pay component is not available");
     }
 
     this.component.mount(selector);

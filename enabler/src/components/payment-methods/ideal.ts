@@ -3,34 +3,34 @@ import {
   PaymentComponent,
   PaymentComponentBuilder,
   PaymentMethod,
-} from "../../../payment-enabler/payment-enabler.ts";
-import { BaseComponent } from "../../base.ts";
-import { BaseOptions } from "../../../payment-enabler/cko-payment-enabler.ts";
+} from "../../payment-enabler/payment-enabler.ts";
+import { BaseComponent } from "../base.ts";
+import { BaseOptions } from "../../payment-enabler/cko-payment-enabler.ts";
 import { Component } from "@checkout.com/checkout-web-components";
 
-export class KlarnaBuilder implements PaymentComponentBuilder {
+export class IdealBuilder implements PaymentComponentBuilder {
   public componentHasSubmit = true;
 
   constructor(private baseOptions: BaseOptions) {}
   
   build(config: ComponentOptions): PaymentComponent {
-    const cmp = new Klarna(this.baseOptions, config);
+    const cmp = new Ideal(this.baseOptions, config);
     cmp.init();
     return cmp;
   }
 }
 
-export class Klarna extends BaseComponent {
+export class Ideal extends BaseComponent {
   private showPayButton: boolean;
   private component: Component;
 
   constructor(baseOptions: BaseOptions, componentOptions: ComponentOptions) {
-    super(PaymentMethod.sepa, baseOptions, componentOptions);
+    super(PaymentMethod.ideal, baseOptions, componentOptions);
     this.showPayButton = componentOptions?.showPayButton ?? false;
   }
 
   init(): void {
-    this.component = this.ckoWebComponents.create("klarna", {
+    this.component = this.ckoWebComponents.create("ideal", {
       showPayButton: this.showPayButton,
     });
   }
@@ -39,7 +39,7 @@ export class Klarna extends BaseComponent {
   async mount(selector: string) {
     const isAvailable = await this.component.isAvailable();
     if (!isAvailable) {
-      throw new Error("Klarna component is not available");
+      throw new Error("Ideal component is not available");
     }
 
     this.component.mount(selector);

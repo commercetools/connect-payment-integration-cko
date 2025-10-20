@@ -3,34 +3,34 @@ import {
   PaymentComponent,
   PaymentComponentBuilder,
   PaymentMethod,
-} from "../../../payment-enabler/payment-enabler.ts";
-import { BaseComponent } from "../../base.ts";
-import { BaseOptions } from "../../../payment-enabler/cko-payment-enabler.ts";
+} from "../../payment-enabler/payment-enabler.ts";
+import { BaseComponent } from "../base.ts";
+import { BaseOptions } from "../../payment-enabler/cko-payment-enabler.ts";
 import { Component } from "@checkout.com/checkout-web-components";
 
-export class AlmaBuilder implements PaymentComponentBuilder {
+export class SepaBuilder implements PaymentComponentBuilder {
   public componentHasSubmit = true;
 
   constructor(private baseOptions: BaseOptions) {}
   
   build(config: ComponentOptions): PaymentComponent {
-    const cmp = new Alma(this.baseOptions, config);
+    const cmp = new Sepa(this.baseOptions, config);
     cmp.init();
     return cmp;
   }
 }
 
-export class Alma extends BaseComponent {
+export class Sepa extends BaseComponent {
   private showPayButton: boolean;
   private component: Component;
 
   constructor(baseOptions: BaseOptions, componentOptions: ComponentOptions) {
-    super(PaymentMethod.alma, baseOptions, componentOptions);
+    super(PaymentMethod.sepa, baseOptions, componentOptions);
     this.showPayButton = componentOptions?.showPayButton ?? false;
   }
 
   init(): void {
-    this.component = this.ckoWebComponents.create("alma", {
+    this.component = this.ckoWebComponents.create("sepa", {
       showPayButton: this.showPayButton,
     });
   }
@@ -39,7 +39,7 @@ export class Alma extends BaseComponent {
   async mount(selector: string) {
     const isAvailable = await this.component.isAvailable();
     if (!isAvailable) {
-      throw new Error("Alma component is not available");
+      throw new Error("Sepa component is not available");
     }
 
     this.component.mount(selector);
