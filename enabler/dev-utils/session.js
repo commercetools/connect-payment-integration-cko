@@ -41,7 +41,20 @@ const getSessionId = async (cartId) => {
   const sessionMetadata = {
     processorUrl: __VITE_PROCESSOR_URL__,
     paymentInterface: "cko-test",
-    allowedPaymentMethods: ["applepay", "card", "ideal", "googlepay", "paypal", "sepa"], // add here your allowed methods for development purposes
+    allowedPaymentMethods: [
+      "alma",
+      "applepay",
+      "bizum",
+      "card",
+      "eps",
+      "googlepay",
+      "ideal",
+      "klarna",
+      "mbway",
+      "paypal",
+      "przelewy24",
+      "sepa",
+    ], // add here your allowed methods for development purposes
   };
 
   const url = `${__VITE_CTP_SESSION_URL__}/${projectKey}/sessions`;

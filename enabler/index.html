@@ -33,7 +33,7 @@
               <div class="form-group col-md-6">
                 <div>
                   <label for="cartId">Cart ID:</label>
-                  <input type="text" class="form-control" id="cartId" value="7c4ec942-2510-44f5-9ec6-917457748443" />
+                  <input type="text" class="form-control" id="cartId" value="bdb05af1-ce4c-4eae-84c0-9394be61cb30" />
                 </div>
               </div>
               <div class="form-group col-md-6">
@@ -144,7 +144,7 @@
                 });
 
                 if (builder.componentHasSubmit) {
-                  if (selectedValue === 'card' || selectedValue === 'sepa') {
+                  if (selectedValue === 'card' || selectedValue === 'sepa' || selectedValue === 'klarna' || selectedValue === 'bizum' || selectedValue === 'alma' || selectedValue === 'ideal') {
                     await component.mount("#container--external");
                   }
                   

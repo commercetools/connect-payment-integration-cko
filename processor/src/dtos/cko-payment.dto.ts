@@ -16,6 +16,10 @@ export enum PaymentMethodType {
   PURCHASE_ORDER = 'purchaseorder',
 }
 
+export type PaymentSessionRequestDTO = {
+  locale?: string;
+};
+
 export type PaymentSessionResponseDTO = PaymentSessionResponse & {
   paymentReference: string;
 };

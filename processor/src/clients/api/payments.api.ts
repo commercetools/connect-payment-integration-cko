@@ -3,6 +3,7 @@ import { ApiResources } from '../types/api.type';
 import {
   CkoCapturePaymentRequest,
   CkoCapturePaymentResponse,
+  CkoGetPaymentResponse,
   CkoRefundPaymentRequest,
   CkoRefundPaymentResponse,
   CkoReversePaymentRequest,
@@ -15,6 +16,15 @@ import { CkoBaseApi } from './base-api';
 export class PaymentApi extends CkoBaseApi {
   constructor() {
     super();
+  }
+
+  public async getPayment(id: string): Promise<CkoGetPaymentResponse> {
+    const url = this.buildResourceUrl(config.ckoEnvironment, ApiResources.GET_PAYMENT, id);
+
+    return await this.executeCall<CkoGetPaymentResponse>({
+      method: 'get',
+      url,
+    });
   }
 
   public async voidPayment(id: string, request: CkoVoidPaymentRequest): Promise<CkoVoidPaymentResponse> {

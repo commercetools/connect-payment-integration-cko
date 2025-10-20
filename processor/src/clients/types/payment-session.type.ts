@@ -17,6 +17,7 @@ export type CkoLineItems = {
   name: string;
   quantity: number;
   unit_price: number;
+  total_amount?: number;
 };
 
 export interface PaymentSessionRequest {

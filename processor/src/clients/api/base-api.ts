@@ -1,4 +1,4 @@
-import { config, getConfig } from '../../config/config';
+import { getConfig } from '../../config/config';
 import { CkoApiError, CkoApiErrorData } from '../../errors/cko-api.error';
 import { log } from '../../libs/logger';
 import { ApiBasePath, ApiRequestConfig, ApiResources } from '../types/api.type';

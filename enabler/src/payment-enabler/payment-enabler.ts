@@ -152,18 +152,28 @@ export type EnablerOptions = {
  * Represents the payment method code.
  */
 export enum PaymentMethod {
+  /* Alma */
+  alma = "alma",
   /* Apple Pay */
   applepay = "applepay",
+  /* Bizum */
+  bizum = "bizum",
   /* Card */
   card = "card",
+  /* EPS */
+  eps = "eps",
   /* Google Pay */
   googlepay = "googlepay",
   /* iDeal */
   ideal = "ideal",
   /* Klarna */
   klarna = "klarna",
+  /* MBWay */
+  mbway = "mbway",
   /* PayPal */
   paypal = "paypal",
+  /* Przelewy24 */
+  przelewy24 = "p24",
   /* Sepa */
   sepa = "sepa",
   /* TWINT */

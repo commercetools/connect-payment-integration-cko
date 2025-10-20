@@ -23,6 +23,7 @@ import { config, getConfig } from '../config/config';
 import { appLogger, paymentSDK } from '../payment-sdk';
 import {
   PaymentConfirmResponseDTO,
+  PaymentSessionRequestDTO,
   PaymentSessionResponseDTO,
   SubmitPaymentSessionRequestDTO,
   SubmitPaymentSessionResponseDTO,
@@ -32,7 +33,7 @@ import {
   getMerchantReturnUrlFromContext,
   getPaymentInterfaceFromContext,
 } from '../libs/fastify/context/context';
-import { CkoPaymentStatus } from '../clients/types/payment-session.type';
+import { CkoPaymentStatus, PaymentSessionRequest } from '../clients/types/payment-session.type';
 import { getCheckoutApiClient } from '../clients/cko.client';
 import { CreatePaymentSessionConverter } from './converters/create-payment-session.converter';
 import { PaymentComponentsConverter } from './converters/payment-components.converter';
@@ -47,6 +48,8 @@ import { NotificationConverter } from './converters/notification.converter';
 import { UnsupportedNotificationError } from '../errors/cko-api.error';
 import { CkoPaymentServiceOptions } from './types/cko-payment.type';
 import { randomUUID } from 'crypto';
+import { isMethodAutoCaptured } from '../helpers/method-auto-capture.helper';
+import { convertPaymentMethodFromCkoFormat } from '../helpers/method-name.helper';
 
 export class CkoPaymentService extends AbstractPaymentService {
   private paymentComponentsConverter: PaymentComponentsConverter;
@@ -396,7 +399,7 @@ export class CkoPaymentService extends AbstractPaymentService {
     };
   }
 
-  async createSession(): Promise<PaymentSessionResponseDTO> {
+  async createSession(opts: { data: PaymentSessionRequestDTO }): Promise<PaymentSessionResponseDTO> {
     const ctCart = await this.ctCartService.getCart({
       id: getCartIdFromContext(),
     });
@@ -430,9 +433,12 @@ export class CkoPaymentService extends AbstractPaymentService {
     });
 
     const ckoRequestData = this.createPaymentSessionConverter.convertRequest({
+      data: opts.data,
       cart: updatedCart,
       payment: ctPayment,
     });
+
+    console.log('Creating payment session with data:', JSON.stringify(ckoRequestData, null, 2));
 
     try {
       const res = await getCheckoutApiClient().paymentSessions.createPaymentSession(ckoRequestData);
@@ -478,12 +484,16 @@ export class CkoPaymentService extends AbstractPaymentService {
       const res = await getCheckoutApiClient().paymentSessions.submitPaymentSession(id, ckoRequestData);
 
       const response = this.submitPaymentSessionConverter.convertResponse({ responseData: res, payment });
+      const transactionType = isMethodAutoCaptured(res.type) ? 'Charge' : 'Authorization';
 
       const updatedPayment = await this.ctPaymentService.updatePayment({
         id: payment.id,
         pspReference: response.id,
+        paymentMethodInfo: {
+          method: convertPaymentMethodFromCkoFormat(res.type),
+        },
         transaction: {
-          type: 'Authorization',
+          type: transactionType,
           amount: payment.amountPlanned,
           interfaceId: response.id,
           state: this.convertPaymentStatus(response.status),
@@ -528,10 +538,15 @@ export class CkoPaymentService extends AbstractPaymentService {
     const payment = await this.ctPaymentService.getPayment({
       id: opts.paymentReference,
     });
+
+    const ckoPayment = await getCheckoutApiClient().payments.getPayment(opts.ckoPaymentId);
+    const methodType = ckoPayment.source?.type || 'unknown';
+    const transactionType = isMethodAutoCaptured(methodType) ? 'Charge' : 'Authorization';
+
     const updatedPayment = await this.ctPaymentService.updatePayment({
       id: opts.paymentReference,
       transaction: {
-        type: 'Authorization',
+        type: transactionType,
         amount: payment.amountPlanned,
         interfaceId: opts.ckoPaymentId,
         state: opts.isSuccess ? 'Success' : 'Failure',

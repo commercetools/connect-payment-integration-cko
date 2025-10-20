@@ -2,6 +2,7 @@ import { CustomFieldsDraft, Money, PaymentMethodInfoDraft, TransactionData } fro
 import { CkoEventType, CkoWebhookEvent } from '../../clients/types/webhook.type';
 import { NotificationUpdatePayment } from '../types/cko-payment.type';
 import { UnsupportedNotificationError } from '../../errors/cko-api.error';
+import { convertPaymentMethodFromCkoFormat } from '../../helpers/method-name.helper';
 
 export class NotificationConverter {
   private eventMapper: Partial<Record<CkoEventType | string, (event: CkoWebhookEvent) => NotificationUpdatePayment>>;
@@ -12,8 +13,9 @@ export class NotificationConverter {
       [CkoEventType.PAYMENT_CANCELED]: this.handlePaymentCanceled,
       [CkoEventType.PAYMENT_DECLINED]: this.handlePaymentDeclined,
       [CkoEventType.PAYMENT_EXPIRED]: this.handlePaymentExpired,
-      [CkoEventType.PAYMENT_PENDING]: this.handlePaymentPending,
+      // [CkoEventType.PAYMENT_PENDING]: this.handlePaymentPending, //TODO: review if this makes sense
       [CkoEventType.PAYMENT_CAPTURED]: this.handlePaymentCaptured,
+      [CkoEventType.PAYMENT_CAPTURE_PENDING]: this.handlePaymentCaptured,
       [CkoEventType.PAYMENT_CAPTURE_DECLINED]: this.handlePaymentCaptureDeclined,
       [CkoEventType.PAYMENT_REFUNDED]: this.handlePaymentRefunded,
       [CkoEventType.PAYMENT_REFUND_DECLINED]: this.handlePaymentRefundDeclined,
@@ -111,6 +113,20 @@ export class NotificationConverter {
       transaction: {
         type: 'Charge',
         state: 'Success',
+        amount: this.convertAmount(event),
+        interfaceId: event.data.action_id,
+      },
+    };
+  };
+
+  private handlePaymentCapturePending = (event: CkoWebhookEvent): NotificationUpdatePayment => {
+    return {
+      paymentId: this.getPaymentId(event),
+      pspReference: event.data.id,
+      paymentMethodInfo: this.convertPaymentMethodInfo(event),
+      transaction: {
+        type: 'Charge',
+        state: 'Pending',
         amount: this.convertAmount(event),
         interfaceId: event.data.action_id,
       },
@@ -256,8 +272,10 @@ export class NotificationConverter {
   }
 
   private convertPaymentMethodInfo(event: CkoWebhookEvent): PaymentMethodInfoDraft {
+    const method = event.data.source?.card_wallet_type || event.data.source?.type;
+
     return {
-      method: event.data.source?.type,
+      ...(method ? { method: convertPaymentMethodFromCkoFormat(method) } : {}),
       ...(event.data.source?.type === 'card' ? { custom: this.convertCardPaymentMethod(event) } : {}),
     };
   }

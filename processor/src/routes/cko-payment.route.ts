@@ -4,6 +4,7 @@ import {
 } from '@commercetools/connect-payments-sdk';
 import { FastifyInstance, FastifyPluginOptions } from 'fastify';
 import {
+  PaymentSessionRequestDTO,
   PaymentSessionResponseDTO,
   SubmitPaymentSessionRequestDTO,
   SubmitPaymentSessionResponseDTO,
@@ -25,13 +26,13 @@ type NotificationRoutesOptions = {
 };
 
 export const paymentRoutes = async (fastify: FastifyInstance, opts: FastifyPluginOptions & PaymentRoutesOptions) => {
-  fastify.post<{ Reply: PaymentSessionResponseDTO }>(
+  fastify.post<{ Body: PaymentSessionRequestDTO; Reply: PaymentSessionResponseDTO }>(
     '/payment-sessions',
     {
       preHandler: [opts.sessionHeaderAuthHook.authenticate()],
     },
     async (request, reply) => {
-      const resp = await opts.paymentService.createSession();
+      const resp = await opts.paymentService.createSession({ data: request.body });
 
       return reply.status(200).send(resp);
     },

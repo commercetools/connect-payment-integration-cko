@@ -38,7 +38,7 @@ export class Card extends BaseComponent {
   async mount(selector: string) {
     const isAvailable = await this.component.isAvailable();
     if (!isAvailable) {
-      throw new Error("paypal component is not available");
+      throw new Error("Card component is not available");
     }
 
     this.component.mount(selector);

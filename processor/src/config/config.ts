@@ -10,7 +10,7 @@ const CkoChannelConfigSchema = Type.Object({
   publicKey: Type.String(),
   secretKey: Type.String(),
   hmacKey: Type.String(),
-  captureDelay: Type.Optional(Type.Number({ default: 0 })), // 0 means capture immediately
+  captureDelayHours: Type.Optional(Type.Number({ default: 0 })), // 0 means capture immediately
   enableThreeDS: Type.Optional(Type.Boolean({ default: true })),
 });
 
@@ -21,8 +21,6 @@ const CkoConfigSchema = Type.Object({
   channelPath: Type.Optional(Type.String({ default: 'store.key' })), // Path in cart where to use to discriminate channels
   channels: Type.Optional(CkoChannelsConfigSchema),
 });
-
-
 
 const AppConfigSchema = Type.Object({
   projectKey: Type.String(),
@@ -85,7 +83,7 @@ export const getConfig = () => {
     getPublicKey,
     getSecretKey,
     getHmacKey,
-    getCaptureDelay,
+    getCaptureDelayHours,
     getEnableThreeDS,
     getChannelKey,
   };
@@ -159,16 +157,16 @@ function getHmacKey(): string {
   return channel?.hmacKey || cko.default.hmacKey;
 }
 
-function getCaptureDelay(): number | undefined {
+function getCaptureDelayHours(): number | undefined {
   const key = getCkoConfigKeyFromContext();
   const cko = config.ckoConfig;
 
   if (!key) {
-    return cko.default.captureDelay;
+    return cko.default.captureDelayHours;
   }
 
   const channel = cko.channels?.find((c) => c.key === key);
-  return channel?.captureDelay || cko.default.captureDelay;
+  return channel?.captureDelayHours || cko.default.captureDelayHours;
 }
 
 function getEnableThreeDS(): boolean {
