@@ -22,12 +22,14 @@ import {
   TransactionResponse,
   TransactionResponseDTO,
 } from '../dtos/operations/transaction.dto';
+import { CkoConfigHook } from '../libs/fastify/hooks/cko-config.hook';
 
 type OperationRouteOptions = {
   sessionHeaderAuthHook: SessionHeaderAuthenticationHook;
   oauth2AuthHook: Oauth2AuthenticationHook;
   jwtAuthHook: JWTAuthenticationHook;
   authorizationHook: AuthorityAuthorizationHook;
+  ckoConfigHook: CkoConfigHook;
   paymentService: AbstractPaymentService;
 };
 
@@ -86,6 +88,7 @@ export const operationsRoute = async (fastify: FastifyInstance, opts: FastifyPlu
       preHandler: [
         opts.oauth2AuthHook.authenticate(),
         opts.authorizationHook.authorize('manage_project', 'manage_checkout_payment_intents'),
+        opts.ckoConfigHook.setConfigKey(),
       ],
       schema: {
         params: {

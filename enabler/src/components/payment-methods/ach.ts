@@ -30,7 +30,7 @@ export class ACH extends BaseComponent {
   }
 
   init(): void {
-    this.component = this.ckoWebComponents.create("plaid", {
+    this.component = this.ckoWebComponents.create("flow", {
       showPayButton: this.showPayButton,
     });
   }

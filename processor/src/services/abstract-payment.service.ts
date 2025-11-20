@@ -1,5 +1,7 @@
 import {
   CommercetoolsCartService,
+  CommercetoolsOrderService,
+  CommercetoolsPaymentMethodService,
   CommercetoolsPaymentService,
   ErrorInvalidOperation,
 } from '@commercetools/connect-payments-sdk';
@@ -19,10 +21,19 @@ import { SupportedPaymentComponentsSchemaDTO } from '../dtos/operations/payment-
 export abstract class AbstractPaymentService {
   protected ctCartService: CommercetoolsCartService;
   protected ctPaymentService: CommercetoolsPaymentService;
+  protected ctOrderService: CommercetoolsOrderService;
+  protected ctPaymentMethodService: CommercetoolsPaymentMethodService;
 
-  protected constructor(ctCartService: CommercetoolsCartService, ctPaymentService: CommercetoolsPaymentService) {
+  constructor(
+    ctCartService: CommercetoolsCartService,
+    ctPaymentService: CommercetoolsPaymentService,
+    ctOrderService: CommercetoolsOrderService,
+    ctPaymentMethodService: CommercetoolsPaymentMethodService,
+  ) {
     this.ctCartService = ctCartService;
     this.ctPaymentService = ctPaymentService;
+    this.ctOrderService = ctOrderService;
+    this.ctPaymentMethodService = ctPaymentMethodService;
   }
 
   /**

@@ -1,5 +1,7 @@
 import {
   CommercetoolsCartService,
+  CommercetoolsOrderService,
+  CommercetoolsPaymentMethodService,
   CommercetoolsPaymentService,
   PaymentMethodInfoDraft,
   TransactionData,
@@ -8,6 +10,14 @@ import {
 export type CkoPaymentServiceOptions = {
   ctCartService: CommercetoolsCartService;
   ctPaymentService: CommercetoolsPaymentService;
+  ctOrderService: CommercetoolsOrderService;
+  ctPaymentMethodService: CommercetoolsPaymentMethodService;
+};
+
+export type CkoStoredPaymentMethodServiceOptions = {
+  ctCartService: CommercetoolsCartService;
+  ctPaymentService: CommercetoolsPaymentService;
+  ctPaymentMethodService: CommercetoolsPaymentMethodService;
 };
 
 export type NotificationUpdatePayment = {

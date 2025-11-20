@@ -3,7 +3,6 @@ import { fastifyRequestContext, requestContext } from '@fastify/request-context'
 import { randomUUID } from 'crypto';
 import { FastifyInstance, FastifyRequest } from 'fastify';
 import fp from 'fastify-plugin';
-import { CkoConfig } from '../../../config/config';
 
 export type ContextData = {
   anonymousId?: string;

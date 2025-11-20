@@ -13,11 +13,13 @@ import { CkoPaymentService } from '../services/cko-payment.service';
 import { HmacAuthHook } from '../libs/fastify/hooks/hmac-auth.hook';
 import { rawBodyPlugin } from '../libs/fastify/hooks/raw-body.hook';
 import { CkoWebhookEvent } from '../clients/types/webhook.type';
+import { CkoConfigHook } from '../libs/fastify/hooks/cko-config.hook';
 
 type PaymentRoutesOptions = {
   paymentService: CkoPaymentService;
   sessionHeaderAuthHook: SessionHeaderAuthenticationHook;
   sessionQueryParamAuthHook: SessionQueryParamAuthenticationHook;
+  ckoConfigHook: CkoConfigHook;
 };
 
 type NotificationRoutesOptions = {
@@ -29,7 +31,7 @@ export const paymentRoutes = async (fastify: FastifyInstance, opts: FastifyPlugi
   fastify.post<{ Body: PaymentSessionRequestDTO; Reply: PaymentSessionResponseDTO }>(
     '/payment-sessions',
     {
-      preHandler: [opts.sessionHeaderAuthHook.authenticate()],
+      preHandler: [opts.sessionHeaderAuthHook.authenticate(), opts.ckoConfigHook.setConfigKey()],
     },
     async (request, reply) => {
       const resp = await opts.paymentService.createSession({ data: request.body });
@@ -45,7 +47,7 @@ export const paymentRoutes = async (fastify: FastifyInstance, opts: FastifyPlugi
   }>(
     '/payment-sessions/:id',
     {
-      preHandler: [opts.sessionHeaderAuthHook.authenticate()],
+      preHandler: [opts.sessionHeaderAuthHook.authenticate(), opts.ckoConfigHook.setConfigKey()],
     },
     async (request, reply) => {
       const resp = await opts.paymentService.submitPaymentSession(request.params.id, {
@@ -66,7 +68,7 @@ export const paymentRoutes = async (fastify: FastifyInstance, opts: FastifyPlugi
   }>(
     '/payment-sessions/confirm',
     {
-      preHandler: [opts.sessionQueryParamAuthHook.authenticate()],
+      preHandler: [opts.sessionQueryParamAuthHook.authenticate(), opts.ckoConfigHook.setConfigKey()],
     },
     async (request, reply) => {
       const res = await opts.paymentService.confirmPayment({

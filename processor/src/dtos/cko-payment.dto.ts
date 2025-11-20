@@ -26,6 +26,7 @@ export type PaymentSessionResponseDTO = PaymentSessionResponse & {
 
 export type SubmitPaymentSessionRequestDTO = SubmitPaymentSessionRequest & {
   paymentReference: string;
+  storePaymentMethod?: boolean;
 };
 
 export type SubmitPaymentSessionResponseDTO = SubmitPaymentSessionResponse & {

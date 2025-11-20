@@ -11,5 +11,6 @@ export default async function (server: FastifyInstance) {
     oauth2AuthHook: paymentSDK.oauth2AuthHookFn,
     sessionHeaderAuthHook: paymentSDK.sessionHeaderAuthHookFn,
     authorizationHook: paymentSDK.authorityAuthorizationHookFn,
+    ckoConfigHook: app.hooks.ckoConfigHook,
   });
 }

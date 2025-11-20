@@ -25,7 +25,7 @@ export class CreatePaymentSessionConverter {
     return {
       processing_channel_id: getConfig().getChannelId(),
       amount: payment.amountPlanned.centAmount,
-      currency: payment.amountPlanned.currencyCode,
+      currency: 'USD',
       reference: payment.id,
       locale,
       billing: {
@@ -35,18 +35,19 @@ export class CreatePaymentSessionConverter {
       ...this.convertEnableCapture(),
       success_url: this.buildReturnUrl(payment.id, true),
       failure_url: this.buildReturnUrl(payment.id, false),
-      payment_type: cart.customerId ? 'Unscheduled' : 'Regular',
-      ...(cart.customerId && {
+      payment_type: getConfig().isStoredPaymentMethodsEnabled() && cart.customerId ? 'Unscheduled' : 'Regular',
+      ...(cart.customerEmail && {
         customer: {
-          id: cart.customerId,
           email: cart.customerEmail,
+          // ...(cart.customerId && { id: cart.customerId }),
         },
       }),
       '3ds': { enabled: getConfig().getEnableThreeDS() },
       metadata: {
+        correlation_id: getRequestContext().correlationId!,
         cart_id: cart.id,
         payment_id: payment.id,
-        correlation_id: getRequestContext().correlationId!,
+        ...(cart.customerId && { customer_id: cart.customerId }),
         ...(futureOrderNumber && { merchant_order_reference: futureOrderNumber }),
       },
       integration: {
@@ -57,6 +58,13 @@ export class CreatePaymentSessionConverter {
       },
       items: this.convertCartItems(cart, payment, locale),
       enabled_payment_methods: convertAllowedPaymentMethodsToCkoFormat(),
+      payment_method_configuration: {
+        stored_card: {
+          customer_id: 'cus_qfadfxctfz4ufa3d35rlpkas5e',
+          default_instrument_id: 'src_f5mlm42knbou3cftfsjdgfshhy',
+          instrument_ids: ['src_f5mlm42knbou3cftfsjdgfshhy'],
+        },
+      },
     };
   }
 
@@ -77,11 +85,11 @@ export class CreatePaymentSessionConverter {
 
   private convertAddress(address: Address): CkoAddress {
     return {
-      country: address.country,
+      country: 'US',
       address_line1: address.streetName,
       address_line2: address.additionalStreetInfo,
       city: address.city,
-      state: address.region,
+      state: address.state || address.region || 'NY',
       zip: address.postalCode,
     };
   }

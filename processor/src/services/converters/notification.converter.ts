@@ -1,8 +1,15 @@
-import { CustomFieldsDraft, Money, PaymentMethodInfoDraft, TransactionData } from '@commercetools/connect-payments-sdk';
+import {
+  CommercetoolsPredefinedTypes,
+  CustomFieldsDraft,
+  Money,
+  PaymentMethodInfoDraft,
+  TransactionData,
+} from '@commercetools/connect-payments-sdk';
 import { CkoEventType, CkoWebhookEvent } from '../../clients/types/webhook.type';
 import { NotificationUpdatePayment } from '../types/cko-payment.type';
 import { UnsupportedNotificationError } from '../../errors/cko-api.error';
 import { convertPaymentMethodFromCkoFormat } from '../../helpers/method-name.helper';
+import { getConfig } from '../../config/config';
 
 export class NotificationConverter {
   private eventMapper: Partial<Record<CkoEventType | string, (event: CkoWebhookEvent) => NotificationUpdatePayment>>;
@@ -276,7 +283,19 @@ export class NotificationConverter {
 
     return {
       ...(method ? { method: convertPaymentMethodFromCkoFormat(method) } : {}),
-      ...(event.data.source?.type === 'card' ? { custom: this.convertCardPaymentMethod(event) } : {}),
+      ...(event.data.source?.type === 'card'
+        ? {
+            ...(event.data.source?.id && {
+              token: {
+                value: event.data.source.id,
+              },
+            }),
+            //TODO: load config into the context
+            // paymentInterface: getConfig().getStoredPaymentMethodsPaymentInterface(),
+            interfaceAccount: getConfig().getStoredPaymentMethodsInterfaceAccount(),
+            custom: this.convertCardPaymentMethod(event),
+          }
+        : {}),
     };
   }
 
@@ -284,15 +303,15 @@ export class NotificationConverter {
     return {
       type: {
         typeId: 'type',
-        key: 'ctcheckout-card-details-type',
+        key: CommercetoolsPredefinedTypes.CardDetailsType.key,
       },
       fields: {
-        brand: CKO_CARD_MAPPING.get(event.data.source?.scheme || 'Unknown') || 'Unknown',
-        expiryMonth: event.data.source?.expiry_month,
-        expiryYear: event.data.source?.expiry_year,
-        lastFour: event.data.source?.last_4,
-        bin: event.data.source?.bin,
-        storePaymentMethod: false,
+        [CommercetoolsPredefinedTypes.CardDetailsType.fields.brand]:
+          CKO_CARD_MAPPING.get(event.data.source?.scheme || 'Unknown') || 'Unknown',
+        [CommercetoolsPredefinedTypes.CardDetailsType.fields.expiryMonth]: event.data.source?.expiry_month,
+        [CommercetoolsPredefinedTypes.CardDetailsType.fields.expiryYear]: event.data.source?.expiry_year,
+        [CommercetoolsPredefinedTypes.CardDetailsType.fields.lastFour]: event.data.source?.last_4,
+        [CommercetoolsPredefinedTypes.CardDetailsType.fields.bin]: event.data.source?.bin,
       },
     };
   }
