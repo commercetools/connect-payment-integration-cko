@@ -12,7 +12,7 @@ export class PayPalBuilder implements PaymentComponentBuilder {
   public componentHasSubmit = false;
 
   constructor(private baseOptions: BaseOptions) {}
-  
+
   build(config: ComponentOptions): PaymentComponent {
     const cmp = new PayPal(this.baseOptions, config);
     cmp.init();
@@ -28,8 +28,7 @@ export class PayPal extends BaseComponent {
   }
 
   init(): void {
-    this.component = this.ckoWebComponents.create("paypal", {
-    });
+    this.component = this.ckoWebComponents.create("paypal", {});
   }
 
   async mount(selector: string) {
@@ -41,8 +40,9 @@ export class PayPal extends BaseComponent {
     this.component.mount(selector);
   }
 
-  async submit() {
-    await this.component.submit();
+  async submit(_opts: { storePaymentDetails?: boolean }): Promise<void> {
+    this.setStorePaymentDetails?.(false);
+    this.component.submit();
   }
 
   async showValidation() {}

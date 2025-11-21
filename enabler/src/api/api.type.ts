@@ -33,3 +33,14 @@ export type SubmitPaymentSessionResponse = HandleSubmitResponse & {
   paymentReference: string;
   [key: string]: unknown;
 };
+
+export type PayWithStoredMethodRequest = {
+  paymentReference: string;
+};
+
+export type PayWithStoredMethodResponse = {
+  id: string;
+  status: string;
+  paymentReference: string;
+  [key: string]: unknown;
+};

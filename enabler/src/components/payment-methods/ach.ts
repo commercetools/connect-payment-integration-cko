@@ -35,7 +35,6 @@ export class ACH extends BaseComponent {
     });
   }
 
-
   async mount(selector: string) {
     const isAvailable = await this.component.isAvailable();
     if (!isAvailable) {
@@ -45,8 +44,9 @@ export class ACH extends BaseComponent {
     this.component.mount(selector);
   }
 
-  async submit() {
-    await this.component.submit();
+  async submit(_opts: { storePaymentDetails?: boolean }): Promise<void> {
+    this.setStorePaymentDetails?.(false);
+    this.component.submit();
   }
 
   async showValidation() {}

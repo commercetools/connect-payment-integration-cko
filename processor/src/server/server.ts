@@ -29,7 +29,20 @@ export const setupFastify = async () => {
   // Enable CORS
   await server.register(cors, {
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Correlation-ID', 'X-Request-ID', 'X-Session-ID'],
+    methods: ['GET', 'POST', 'DELETE', 'HEAD'],
     origin: '*',
+  });
+
+  // Customize JSON parser to allow empty bodies for DELETE requests
+  const defaultJsonParser = server.getDefaultJsonParser('ignore', 'ignore');
+  server.addContentTypeParser('application/json', { parseAs: 'string' }, (request, body, done) => {
+    if (request.method === 'DELETE') {
+      if (body === '' || body == null || (Buffer.isBuffer(body) && body.length === 0)) {
+        return done(null, {});
+      }
+      return defaultJsonParser(request, typeof body === 'string' ? body : body.toString(), done);
+    }
+    return defaultJsonParser(request, body.toString(), done);
   });
 
   // Add content type parser for the content type application/x-www-form-urlencoded

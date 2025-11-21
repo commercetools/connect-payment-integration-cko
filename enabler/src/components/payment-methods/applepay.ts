@@ -40,8 +40,9 @@ export class ApplePay extends BaseComponent {
     this.component.mount(selector);
   }
 
-  async submit() {
-    await this.component.submit();
+  async submit(_opts: { storePaymentDetails?: boolean }): Promise<void> {
+    this.setStorePaymentDetails?.(false);
+    this.component.submit();
   }
 
   async showValidation() {}

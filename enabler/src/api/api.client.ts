@@ -2,6 +2,8 @@ import {
   CreatePaymentSessionRequest,
   CreatePaymentSessionResponse,
   PaymentConfigResponse,
+  PayWithStoredMethodRequest,
+  PayWithStoredMethodResponse,
   StoredPaymentMethodsResponse,
   SubmitPaymentSessionRequest,
   SubmitPaymentSessionResponse,
@@ -38,6 +40,33 @@ export class PaymentApi {
     });
     if (!res.ok) throw new Error(`Failed to get stored payment methods (${res.status})`);
     return res.json();
+  }
+
+  public async payWithStoredMethod(id: string, data: PayWithStoredMethodRequest): Promise<PayWithStoredMethodResponse> {
+    const res = await fetch(`${this.host}/stored-payment-methods/${id}/payments`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Session-Id": this.sessionId,
+      },
+      body: JSON.stringify(data),
+    });
+
+    if (!res.ok) throw new Error(`Failed to pay with stored payment method (${res.status})`);
+
+    return res.json();
+  }
+
+  public async deleteStoredPaymentMethod(id: string): Promise<void> {
+    const res = await fetch(`${this.host}/stored-payment-methods/${id}`, {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Session-Id": this.sessionId,
+      },
+    });
+
+    if (!res.ok) throw new Error(`Failed to delete stored payment method (${res.status})`);
   }
 
   public async createPaymentSession(data: CreatePaymentSessionRequest): Promise<CreatePaymentSessionResponse> {

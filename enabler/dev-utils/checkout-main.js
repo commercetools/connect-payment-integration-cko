@@ -11,8 +11,9 @@ import {
   createPreconfiguredCart,
   searchCustomerByEmail,
   createCustomer,
+  getCustomerById,
   getCartById,
-  getSessionId
+  getSessionId,
 } from "/dev-utils/api.js";
 import {
   initializeUI,
@@ -31,7 +32,7 @@ import {
   showErrorToast,
   showSuccessToast,
   showWarningToast,
-  showInfoToast
+  showInfoToast,
 } from "/dev-utils/checkout-ui.js";
 
 // State
@@ -79,7 +80,7 @@ const init = () => {
     availableMethodsList,
     paymentPlaceholder,
     spinner,
-    methodsDivider
+    methodsDivider,
   });
 
   // Setup event listeners
@@ -91,28 +92,28 @@ const init = () => {
  */
 const setupEventListeners = () => {
   // Quick Cart Modal - Customer Type Cards
-  document.querySelectorAll('input[name="quickCartCustomer"]').forEach(radio => {
-    radio.addEventListener('change', function() {
-      document.querySelectorAll('.customer-type-card').forEach(card => {
-        card.classList.remove('selected');
+  document.querySelectorAll('input[name="quickCartCustomer"]').forEach((radio) => {
+    radio.addEventListener("change", function () {
+      document.querySelectorAll(".customer-type-card").forEach((card) => {
+        card.classList.remove("selected");
       });
-      this.closest('.customer-type-card').classList.add('selected');
+      this.closest(".customer-type-card").classList.add("selected");
     });
   });
 
   // Quick Cart Modal
   btnQuickCart.addEventListener("click", handleQuickCartOpen);
-  document.getElementById('btnConfirmQuickCart').addEventListener('click', handleQuickCartCreate);
+  document.getElementById("btnConfirmQuickCart").addEventListener("click", handleQuickCartCreate);
 
   // Custom Cart Modal - Customer Type Cards
-  document.querySelectorAll('input[name="customCustomerOption"]').forEach(radio => {
-    radio.addEventListener('change', function() {
+  document.querySelectorAll('input[name="customCustomerOption"]').forEach((radio) => {
+    radio.addEventListener("change", function () {
       // Update visual selection
-      document.querySelectorAll('.customer-type-card-custom').forEach(card => {
-        card.classList.remove('selected');
+      document.querySelectorAll(".customer-type-card-custom").forEach((card) => {
+        card.classList.remove("selected");
       });
-      this.closest('.customer-type-card-custom').classList.add('selected');
-      
+      this.closest(".customer-type-card-custom").classList.add("selected");
+
       // Show/hide customer details
       handleCustomerOptionChange({ target: this });
     });
@@ -120,8 +121,8 @@ const setupEventListeners = () => {
 
   // Custom Cart Modal
   btnCustomCart.addEventListener("click", handleCustomCartOpen);
-  document.getElementById('btnConfirmCustomCart').addEventListener('click', handleCustomCartCreate);
-  document.getElementById('btnAddLineItem').addEventListener('click', handleAddLineItem);
+  document.getElementById("btnConfirmCustomCart").addEventListener("click", handleCustomCartCreate);
+  document.getElementById("btnAddLineItem").addEventListener("click", handleAddLineItem);
 
   // Cart Summary
   btnCartSummary.addEventListener("click", () => showCartSummary(currentCart));
@@ -131,6 +132,11 @@ const setupEventListeners = () => {
 
   // Reset
   btnReset.addEventListener("click", resetCheckoutState);
+
+  // Setup modal close event listeners
+  $("#successModal").on("hidden.bs.modal", function () {
+    resetCheckoutState();
+  });
 };
 
 /**
@@ -140,56 +146,59 @@ const handleQuickCartOpen = async () => {
   try {
     await ensureProjectConfiguration();
   } catch (error) {
-    console.error('Error checking project configuration:', error);
+    console.error("Error checking project configuration:", error);
   }
-  $('#quickCartModal').modal('show');
+  $("#quickCartModal").modal("show");
 };
 
 /**
  * Handle Quick Cart creation
  */
 const handleQuickCartCreate = async () => {
-  const country = document.getElementById('quickCartCountry').value;
-  const withCustomer = document.querySelector('input[name="quickCartCustomer"]:checked').value === 'with';
-  
+  const country = document.getElementById("quickCartCountry").value;
+  const withCustomer = document.querySelector('input[name="quickCartCustomer"]:checked').value === "with";
+
   // Determine currency by country
   const currencyMap = {
-    'DE': 'EUR', 'NL': 'EUR', 'ES': 'EUR', 'FR': 'EUR', 'IT': 'EUR',
-    'GB': 'GBP',
-    'US': 'USD'
+    DE: "EUR",
+    NL: "EUR",
+    ES: "EUR",
+    FR: "EUR",
+    IT: "EUR",
+    GB: "GBP",
+    US: "USD",
   };
-  const currency = currencyMap[country] || 'EUR';
-  
-  const errorDiv = document.getElementById('quickCartError');
-  const btn = document.getElementById('btnConfirmQuickCart');
-  
+  const currency = currencyMap[country] || "EUR";
+
+  const errorDiv = document.getElementById("quickCartError");
+  const btn = document.getElementById("btnConfirmQuickCart");
+
   // Hide previous errors
-  errorDiv.style.display = 'none';
-  
+  errorDiv.style.display = "none";
+
   // Add loading state to button
   btn.disabled = true;
-  btn.classList.add('loading');
-  
+  btn.classList.add("loading");
+
   try {
     const cart = await createPreconfiguredCart({
       country,
       currency,
-      withCustomer
+      withCustomer,
     });
-    
-    $('#quickCartModal').modal('hide');
-    
-    document.getElementById('cartId').value = cart.id;
+
+    $("#quickCartModal").modal("hide");
+
+    document.getElementById("cartId").value = cart.id;
     await loadCheckout(cart.id);
-    
   } catch (error) {
-    console.error('Error creating cart:', error);
-    errorDiv.textContent = error.message || 'Failed to create cart';
-    errorDiv.style.display = 'block';
+    console.error("Error creating cart:", error);
+    errorDiv.textContent = error.message || "Failed to create cart";
+    errorDiv.style.display = "block";
   } finally {
     // Remove loading state
     btn.disabled = false;
-    btn.classList.remove('loading');
+    btn.classList.remove("loading");
   }
 };
 
@@ -199,33 +208,32 @@ const handleQuickCartCreate = async () => {
 const handleCustomCartOpen = async () => {
   try {
     await ensureProjectConfiguration();
-    
+
     // Always reset and add one default line item when opening
-    const lineItemsList = document.getElementById('customLineItemsList');
-    lineItemsList.innerHTML = ''; // Clear existing items
+    const lineItemsList = document.getElementById("customLineItemsList");
+    lineItemsList.innerHTML = ""; // Clear existing items
     handleAddLineItem(); // Add one default item
-    
+
     // Hide error message
-    document.getElementById('customCartError').style.display = 'none';
-    
+    document.getElementById("customCartError").style.display = "none";
   } catch (error) {
-    console.error('Error checking project configuration:', error);
+    console.error("Error checking project configuration:", error);
   }
-  $('#customCartModal').modal('show');
+  $("#customCartModal").modal("show");
 };
 
 /**
  * Handle customer option change
  */
 const handleCustomerOptionChange = (e) => {
-  document.querySelectorAll('.customer-details-content').forEach(field => {
-    field.classList.remove('active');
+  document.querySelectorAll(".customer-details-content").forEach((field) => {
+    field.classList.remove("active");
   });
-  
-  if (e.target.value === 'existing') {
-    document.getElementById('customExistingCustomerFields').classList.add('active');
-  } else if (e.target.value === 'new') {
-    document.getElementById('customNewCustomerFields').classList.add('active');
+
+  if (e.target.value === "existing") {
+    document.getElementById("customExistingCustomerFields").classList.add("active");
+  } else if (e.target.value === "new") {
+    document.getElementById("customNewCustomerFields").classList.add("active");
   }
 };
 
@@ -233,18 +241,18 @@ const handleCustomerOptionChange = (e) => {
  * Handle add line item
  */
 const handleAddLineItem = () => {
-  const template = document.getElementById('lineItemTemplate');
+  const template = document.getElementById("lineItemTemplate");
   const clone = template.cloneNode(true);
-  clone.style.display = 'block';
-  clone.removeAttribute('id');
-  
-  const removeBtn = clone.querySelector('.custom-line-item-remove');
-  removeBtn.addEventListener('click', function() {
-    this.closest('.custom-line-item-card').remove();
+  clone.style.display = "block";
+  clone.removeAttribute("id");
+
+  const removeBtn = clone.querySelector(".custom-line-item-remove");
+  removeBtn.addEventListener("click", function () {
+    this.closest(".custom-line-item-card").remove();
     updateLineItemsRemoveButtons();
   });
-  
-  document.getElementById('customLineItemsList').appendChild(clone.firstElementChild);
+
+  document.getElementById("customLineItemsList").appendChild(clone.firstElementChild);
   updateLineItemsRemoveButtons();
 };
 
@@ -252,15 +260,15 @@ const handleAddLineItem = () => {
  * Update visibility of remove buttons based on number of items
  */
 const updateLineItemsRemoveButtons = () => {
-  const lineItemsList = document.getElementById('customLineItemsList');
-  const items = lineItemsList.querySelectorAll('.custom-line-item-card');
-  
-  items.forEach(item => {
-    const removeBtn = item.querySelector('.custom-line-item-remove');
+  const lineItemsList = document.getElementById("customLineItemsList");
+  const items = lineItemsList.querySelectorAll(".custom-line-item-card");
+
+  items.forEach((item) => {
+    const removeBtn = item.querySelector(".custom-line-item-remove");
     if (items.length <= 1) {
-      removeBtn.style.display = 'none';
+      removeBtn.style.display = "none";
     } else {
-      removeBtn.style.display = 'flex';
+      removeBtn.style.display = "flex";
     }
   });
 };
@@ -270,95 +278,94 @@ const updateLineItemsRemoveButtons = () => {
  */
 const handleCustomCartCreate = async () => {
   // Parse region selection (format: "COUNTRY-CURRENCY")
-  const regionValue = document.getElementById('customCartRegion').value;
-  const [country, currency] = regionValue.split('-');
+  const regionValue = document.getElementById("customCartRegion").value;
+  const [country, currency] = regionValue.split("-");
   const customerOption = document.querySelector('input[name="customCustomerOption"]:checked').value;
-  
-  const errorDiv = document.getElementById('customCartError');
-  const btn = document.getElementById('btnConfirmCustomCart');
-  errorDiv.style.display = 'none';
-  
+
+  const errorDiv = document.getElementById("customCartError");
+  const btn = document.getElementById("btnConfirmCustomCart");
+  errorDiv.style.display = "none";
+
   // Add loading state
   btn.disabled = true;
-  btn.classList.add('loading');
-  
+  btn.classList.add("loading");
+
   try {
     // Collect custom line items
     const customLineItems = [];
-    document.querySelectorAll('#customLineItemsList .custom-line-item-card').forEach(item => {
-      const name = item.querySelector('.line-item-name').value.trim();
-      const quantity = parseInt(item.querySelector('.line-item-quantity').value);
-      const price = parseInt(item.querySelector('.line-item-price').value);
-      
+    document.querySelectorAll("#customLineItemsList .custom-line-item-card").forEach((item) => {
+      const name = item.querySelector(".line-item-name").value.trim();
+      const quantity = parseInt(item.querySelector(".line-item-quantity").value);
+      const price = parseInt(item.querySelector(".line-item-price").value);
+
       if (name && quantity > 0 && price >= 0) {
         customLineItems.push({
           name: { en: name },
           quantity,
           money: {
             currencyCode: currency,
-            centAmount: price
+            centAmount: price,
           },
-          slug: name.toLowerCase().replace(/\s+/g, '-')
+          slug: name.toLowerCase().replace(/\s+/g, "-"),
         });
       }
     });
-    
+
     // Validate that we have at least one line item
     if (customLineItems.length === 0) {
-      throw new Error('Please add at least one valid line item with name, quantity, and price');
+      throw new Error("Please add at least one valid line item with name, quantity, and price");
     }
-    
+
     let customerId = null;
-    
+
     // Handle customer
-    if (customerOption === 'existing') {
-      const email = document.getElementById('customExistingCustomerEmail').value.trim();
+    if (customerOption === "existing") {
+      const email = document.getElementById("customExistingCustomerEmail").value.trim();
       if (!email) {
-        throw new Error('Please enter customer email');
+        throw new Error("Please enter customer email");
       }
       const customers = await searchCustomerByEmail(email);
       if (customers.length === 0) {
         throw new Error(`No customer found with email: ${email}`);
       }
       customerId = customers[0].id;
-    } else if (customerOption === 'new') {
-      const email = document.getElementById('customNewCustomerEmail').value.trim();
-      const firstName = document.getElementById('customNewCustomerFirstName').value.trim();
-      const lastName = document.getElementById('customNewCustomerLastName').value.trim();
-      
+    } else if (customerOption === "new") {
+      const email = document.getElementById("customNewCustomerEmail").value.trim();
+      const firstName = document.getElementById("customNewCustomerFirstName").value.trim();
+      const lastName = document.getElementById("customNewCustomerLastName").value.trim();
+
       if (!email || !firstName || !lastName) {
-        throw new Error('Please fill all customer fields');
+        throw new Error("Please fill all customer fields");
       }
-      
+
       const customer = await createCustomer(email, firstName, lastName);
       customerId = customer.id;
     }
-    
+
     // Create cart
     const cart = await createCart({
       currency,
       country,
       customerId,
-      customLineItems
+      customLineItems,
     });
-    
-    $('#customCartModal').modal('hide');
-    
+
+    $("#customCartModal").modal("hide");
+
     // Load the cart
-    document.getElementById('cartId').value = cart.id;
+    document.getElementById("cartId").value = cart.id;
     await loadCheckout(cart.id);
-    
+
     // Reset form
     resetCustomCartForm();
-    
   } catch (error) {
-    console.error('Error creating cart:', error);
-    errorDiv.textContent = error.message || 'Failed to create cart';
-    errorDiv.style.display = 'block';
+    console.error("Error creating cart:", error);
+    errorDiv.textContent = error.message || "Failed to create cart";
+    errorDiv.style.display = "block";
   } finally {
     // Remove loading state
     btn.disabled = false;
-    btn.classList.remove('loading');
+    btn.classList.remove("loading");
   }
 };
 
@@ -366,19 +373,19 @@ const handleCustomCartCreate = async () => {
  * Reset custom cart form
  */
 const resetCustomCartForm = () => {
-  document.getElementById('customLineItemsList').innerHTML = '';
-  document.getElementById('customExistingCustomerEmail').value = '';
-  document.getElementById('customNewCustomerEmail').value = '';
-  document.getElementById('customNewCustomerFirstName').value = '';
-  document.getElementById('customNewCustomerLastName').value = '';
-  document.getElementById('customCartRegion').selectedIndex = 0;
+  document.getElementById("customLineItemsList").innerHTML = "";
+  document.getElementById("customExistingCustomerEmail").value = "";
+  document.getElementById("customNewCustomerEmail").value = "";
+  document.getElementById("customNewCustomerFirstName").value = "";
+  document.getElementById("customNewCustomerLastName").value = "";
+  document.getElementById("customCartRegion").selectedIndex = 0;
   document.querySelector('input[name="customCustomerOption"][value="none"]').checked = true;
-  document.querySelectorAll('.customer-type-card-custom').forEach(card => {
-    card.classList.remove('selected');
+  document.querySelectorAll(".customer-type-card-custom").forEach((card) => {
+    card.classList.remove("selected");
   });
-  document.querySelector('.customer-type-card-custom').classList.add('selected');
-  document.querySelectorAll('.customer-details-content').forEach(field => {
-    field.classList.remove('active');
+  document.querySelector(".customer-type-card-custom").classList.add("selected");
+  document.querySelectorAll(".customer-details-content").forEach((field) => {
+    field.classList.remove("active");
   });
 };
 
@@ -406,7 +413,7 @@ const loadCheckout = async (cartId) => {
   try {
     // Get cart details
     currentCart = await getCartById(cartId);
-    
+
     // Load available payment methods
     const res = await fetch(`${__VITE_PROCESSOR_URL__}/operations/payment-components`);
     const paymentMethods = await res.json();
@@ -420,12 +427,12 @@ const loadCheckout = async (cartId) => {
         if (result.isSuccess) {
           showSuccess(`${result.paymentReference}`);
         } else {
-          showError('Payment was not successful. Please try again.');
+          showError("Payment was not successful. Please try again.");
         }
       },
       onError: (error, context) => {
-        console.error('Payment error:', error, context);
-        const errorMessage = error?.message || 'An error occurred during payment processing.';
+        console.error("Payment error:", error, context);
+        const errorMessage = error?.message || "An error occurred during payment processing.";
         showError(errorMessage);
       },
     });
@@ -437,15 +444,23 @@ const loadCheckout = async (cartId) => {
 
     // Register saved payment methods (will appear on top)
     for (const method of storedMethods) {
+      // Create the stored payment method builder and component
+      const builder = await enabler.createStoredPaymentMethodBuilder(method.type);
+      const component = builder.build({
+        id: method.id,
+        brands: method.displayOptions?.brand ? [method.displayOptions.brand.key] : [],
+      });
+
       savedMethodsStore.set(method.id, {
         id: method.id,
         type: method.type,
         token: method.token,
         displayOptions: method.displayOptions,
         isDefault: method.isDefault,
+        component: component, // Store the component so we can call remove() later
       });
       createSavedMethodItem(method, selectSavedMethod);
-      createSavedMethodContainer(method, deleteSavedMethod);
+      createSavedMethodContainer(method, deleteSavedMethod, payWithSavedMethod);
     }
 
     // Show divider if there are saved methods
@@ -470,7 +485,7 @@ const loadCheckout = async (cartId) => {
     showCheckoutContent();
     btnReset.style.display = "flex";
     btnCartSummary.style.display = "flex";
-    
+
     showSuccessToast(`Cart loaded successfully: ${cartId.substring(0, 8)}...`);
   } catch (error) {
     console.error("Error loading checkout:", error);
@@ -499,31 +514,36 @@ const selectSavedMethod = async (savedId) => {
 const deleteSavedMethod = async (savedId) => {
   try {
     showSpinner();
-    
-    // Call API to delete the saved payment method
-    await enabler.deleteSavedPaymentMethod(savedId);
-    
+
+    // Get the saved method from store
+    const savedMethod = savedMethodsStore.get(savedId);
+
+    // Call remove() on the stored payment method component
+    if (savedMethod?.component) {
+      await savedMethod.component.remove();
+    }
+
     // Remove from UI
     const savedItem = document.querySelector(`[data-saved-id="${savedId}"]`);
     savedItem?.remove();
-    
+
     const savedContainer = document.getElementById(`saved-method-${savedId}`);
     savedContainer?.remove();
-    
+
     // Remove from store
     savedMethodsStore.delete(savedId);
-    
+
     // Clear selection if this was the selected method
     if (selectedMethod?.saved && selectedMethod?.data?.id === savedId) {
       clearSelection();
-      showPaymentPlaceholder();
+      paymentPlaceholder.classList.remove("hidden");
     }
-    
+
     // Hide divider if no more saved methods
     if (savedMethodsStore.size === 0) {
       methodsDivider.classList.add("hidden");
     }
-    
+
     hideSpinner();
     showSuccessToast("Payment method deleted successfully");
   } catch (error) {
@@ -531,6 +551,20 @@ const deleteSavedMethod = async (savedId) => {
     hideSpinner();
     showErrorToast(error.message || "Failed to delete payment method");
   }
+};
+
+/**
+ * Pay with saved payment method
+ */
+const payWithSavedMethod = async (savedId) => {
+  const savedMethod = savedMethodsStore.get(savedId);
+
+  if (!savedMethod?.component) {
+    throw new Error("Payment method component not found");
+  }
+
+  // Call submit on the stored payment method component
+  await savedMethod.component.submit();
 };
 
 /**
@@ -612,8 +646,6 @@ const loadPaymentComponent = async (type) => {
 
         try {
           const shouldStore = document.getElementById(`storePaymentMethod-${type}`)?.checked || false;
-          enabler.setStorePaymentDetails(shouldStore);
-
           await component.submit({ storePaymentDetails: shouldStore });
         } catch (error) {
           console.error("Payment submission error:", error);
@@ -660,7 +692,7 @@ const resetCheckoutState = () => {
   enabler = null;
   currentCartId = null;
   currentCart = null;
-  
+
   // Clear cart ID input
   document.getElementById("cartId").value = "";
 };
@@ -669,10 +701,35 @@ const resetCheckoutState = () => {
  * Make handleSuccessClose global for onclick handler in HTML
  */
 window.handleSuccessClose = () => {
-  $('#successModal').modal('hide');
+  const modal = document.getElementById("successModal");
+  modal.classList.remove("show");
+  modal.style.display = "none";
+  document.body.classList.remove("modal-open");
+  const backdrop = document.querySelector(".modal-backdrop");
+  if (backdrop) backdrop.remove();
+
   setTimeout(() => {
     resetCheckoutState();
   }, 300);
+};
+
+/**
+ * Make handleErrorClose global for onclick handler in HTML
+ */
+window.handleErrorClose = () => {
+  const modal = document.getElementById("errorModal");
+  modal.classList.remove("show");
+  modal.style.display = "none";
+  document.body.classList.remove("modal-open");
+  const backdrop = document.querySelector(".modal-backdrop");
+  if (backdrop) backdrop.remove();
+};
+
+/**
+ * Export API functions for use in other modules
+ */
+window.commercetoolsAPI = {
+  getCustomerById,
 };
 
 // Initialize when DOM is ready

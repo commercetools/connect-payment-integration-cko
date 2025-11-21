@@ -12,7 +12,7 @@ export class KlarnaBuilder implements PaymentComponentBuilder {
   public componentHasSubmit = true;
 
   constructor(private baseOptions: BaseOptions) {}
-  
+
   build(config: ComponentOptions): PaymentComponent {
     const cmp = new Klarna(this.baseOptions, config);
     cmp.init();
@@ -35,7 +35,6 @@ export class Klarna extends BaseComponent {
     });
   }
 
-
   async mount(selector: string) {
     const isAvailable = await this.component.isAvailable();
     if (!isAvailable) {
@@ -45,8 +44,9 @@ export class Klarna extends BaseComponent {
     this.component.mount(selector);
   }
 
-  async submit() {
-    await this.component.submit();
+  async submit(_opts: { storePaymentDetails?: boolean }): Promise<void> {
+    this.setStorePaymentDetails?.(false);
+    this.component.submit();
   }
 
   async showValidation() {}

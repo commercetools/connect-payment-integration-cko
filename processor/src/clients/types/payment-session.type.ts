@@ -88,6 +88,7 @@ export interface PaymentSessionResponse {
 
 export type SubmitPaymentSessionRequest = {
   session_data: string;
+  payment_type?: 'Regular' | 'Recurring' | 'Unscheduled' | 'MOTO' | 'Installment';
   [key: string]: unknown;
 };
 

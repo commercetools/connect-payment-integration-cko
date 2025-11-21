@@ -140,22 +140,6 @@ export interface PaymentEnabler {
   getStoredPaymentMethods: ({ allowedMethodTypes }: { allowedMethodTypes: string[] }) => Promise<{
     storedPaymentMethods?: StoredPaymentMethod[];
   }>;
-
-  /**
-   * Instructs the processor to tokenize the payment method for future use.
-   *
-   * Must be called before submitting payment if you want to save the method.
-   *
-   * @param enabled - true to store payment details, false otherwise
-   *
-   * @example
-   * ```typescript
-   * // User checked "Save card for future purchases"
-   * enabler.setStorePaymentDetails(true);
-   * await component.submit();
-   * ```
-   */
-  setStorePaymentDetails(enabled: boolean): void;
 }
 
 /**
@@ -685,7 +669,7 @@ export type StoredPaymentMethod = BaseStoredPaymentMethod | StoredCardPaymentMet
  */
 export type CocoStoredPaymentMethod = StoredPaymentMethod & {
   /** Payment token for CommerceTools platform */
-  token: string;
+  token?: string;
 };
 
 /**

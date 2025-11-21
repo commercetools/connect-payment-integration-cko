@@ -114,6 +114,69 @@ const showInfoToast = (message) => {
 };
 
 /**
+ * Show confirmation dialog
+ */
+const showConfirmDialog = (title, message, onConfirm) => {
+  const modalId = 'confirmDialog';
+  
+  // Remove existing dialog if any
+  const existing = document.getElementById(modalId);
+  if (existing) {
+    existing.remove();
+  }
+
+  // Create modal HTML
+  const modalHTML = `
+    <div class="modal fade" id="${modalId}" tabindex="-1" role="dialog" aria-labelledby="${modalId}Label" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="${modalId}Label">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#dc3545" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="8" x2="12" y2="12"></line>
+                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+              </svg>
+              ${title}
+            </h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+            <p>${message}</p>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+            <button type="button" class="btn btn-danger" id="${modalId}ConfirmBtn">Delete</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  // Add modal to body
+  document.body.insertAdjacentHTML('beforeend', modalHTML);
+
+  // Get modal element
+  const modalElement = document.getElementById(modalId);
+  
+  // Add confirm handler
+  document.getElementById(`${modalId}ConfirmBtn`).addEventListener('click', () => {
+    $(`#${modalId}`).modal('hide');
+    onConfirm();
+  });
+
+  // Clean up when modal is hidden
+  $(`#${modalId}`).on('hidden.bs.modal', function () {
+    modalElement.remove();
+  });
+
+  // Show modal
+  $(`#${modalId}`).modal('show');
+};
+
+/**
  * Create a saved payment method item in the sidebar
  */
 const createSavedMethodItem = (saved, onSelectCallback) => {
@@ -129,8 +192,9 @@ const createSavedMethodItem = (saved, onSelectCallback) => {
 
   item.innerHTML = `
     <span class="saved-badge">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
+        <line x1="1" y1="10" x2="23" y2="10"></line>
       </svg>
     </span>
     <p class="payment-method-name">${brand.toUpperCase()} •••• ${endDigits}</p>
@@ -144,7 +208,7 @@ const createSavedMethodItem = (saved, onSelectCallback) => {
 /**
  * Create saved payment method container with pay button
  */
-const createSavedMethodContainer = (saved, onDeleteCallback) => {
+const createSavedMethodContainer = (saved, onDeleteCallback, onPayCallback) => {
   const wrapper = document.createElement("div");
   wrapper.className = "payment-component-wrapper";
   wrapper.id = `saved-method-${saved.id}`;
@@ -160,29 +224,25 @@ const createSavedMethodContainer = (saved, onDeleteCallback) => {
   const expiryDate = expiryMonth && expiryYear ? `${String(expiryMonth).padStart(2, "0")}/${expiryYear}` : "N/A";
 
   wrapper.innerHTML = `
-    <h5>Payment Details</h5>
     <div class="payment-details-content">
       <div class="saved-method-display">
-        <div class="saved-method-header">
-          <div class="saved-method-badge">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-              <path d="M20 6L9 17l-5-5"></path>
-            </svg>
-            <span>Saved Payment</span>
-          </div>
-          <button class="btn-delete-saved-method" id="delete-saved-${saved.id}" title="Delete this payment method">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="3 6 5 6 21 6"></polyline>
-              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-            </svg>
-          </button>
-        </div>
         <div class="saved-method-info">
-          <div class="saved-method-icon">💳</div>
+          <div class="saved-method-icon">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
+              <line x1="1" y1="10" x2="23" y2="10"></line>
+            </svg>
+          </div>
           <div class="saved-method-details">
             <strong>${cardBrand.toUpperCase()} •••• ${endDigits}</strong>
             <span>Expires ${expiryDate}</span>
           </div>
+          <button class="btn-delete-saved-method" id="delete-saved-${saved.id}" title="Delete this payment method">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="3 6 5 6 21 6"></polyline>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+            </svg>
+          </button>
         </div>
         <div class="saved-method-footer">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -198,7 +258,9 @@ const createSavedMethodContainer = (saved, onDeleteCallback) => {
           I agree to the terms and conditions
         </label>
       </div>
-      <button class="btn btn-primary btn-block btn-lg payment-submit-btn" id="pay-saved-${saved.id}" style="margin: 0 30px 30px 30px; width: calc(100% - 60px);">
+      <button class="btn btn-primary btn-block btn-lg payment-submit-btn" id="pay-saved-${
+        saved.id
+      }" style="margin: 0 30px 30px 30px; width: calc(100% - 60px);">
         <span class="btn-spinner"></span>
         <span class="btn-text">Pay Now</span>
       </button>
@@ -209,18 +271,37 @@ const createSavedMethodContainer = (saved, onDeleteCallback) => {
 
   // Add click handler for delete button
   document.getElementById(`delete-saved-${saved.id}`).addEventListener("click", () => {
-    if (confirm(`Are you sure you want to delete this saved payment method?\n${cardBrand.toUpperCase()} •••• ${endDigits}`)) {
-      onDeleteCallback(saved.id);
-    }
+    showConfirmDialog(
+      "Delete Payment Method",
+      `Are you sure you want to delete this saved payment method?<br><strong>${cardBrand.toUpperCase()} •••• ${endDigits}</strong>`,
+      () => onDeleteCallback(saved.id)
+    );
   });
 
-  // Add click handler for pay button - USE TOAST INSTEAD OF ALERT
-  document.getElementById(`pay-saved-${saved.id}`).addEventListener("click", () => {
+  // Add click handler for pay button - Call submit on saved payment method component
+  document.getElementById(`pay-saved-${saved.id}`).addEventListener("click", async () => {
     if (!document.getElementById(`termsCheckbox-saved-${saved.id}`).checked) {
       showWarningToast("You must agree to the terms and conditions.");
       return;
     }
-    showInfoToast("Payment with saved method not yet implemented");
+
+    const button = document.getElementById(`pay-saved-${saved.id}`);
+
+    try {
+      // Show loading state
+      button.disabled = true;
+      button.classList.add("loading");
+
+      // Call the pay callback which will submit the stored payment method
+      await onPayCallback(saved.id);
+    } catch (error) {
+      console.error("Error processing payment:", error);
+      showErrorToast(error.message || "Failed to process payment");
+    } finally {
+      // Remove loading state
+      button.disabled = false;
+      button.classList.remove("loading");
+    }
   });
 };
 
@@ -249,7 +330,6 @@ const createPaymentMethodContainer = (type) => {
   wrapper.id = `payment-method-${type}`;
 
   wrapper.innerHTML = `
-    <h5>Payment Details</h5>
     <div class="payment-component-container" id="component-${type}"></div>
     <div id="storePaymentMethod-container-${type}" class="form-group form-check hidden">
       <input type="checkbox" class="form-check-input" id="storePaymentMethod-${type}" />
@@ -368,7 +448,7 @@ const resetCheckout = () => {
 /**
  * Show cart summary modal with improved visual design
  */
-const showCartSummary = (cart) => {
+const showCartSummary = async (cart) => {
   const modal = $("#cartSummaryModal");
   const content = document.getElementById("cartSummaryContent");
 
@@ -376,6 +456,20 @@ const showCartSummary = (cart) => {
     content.innerHTML = '<p class="text-muted">No cart loaded</p>';
     modal.modal("show");
     return;
+  }
+
+  // Get customer info if customerId exists
+  let customerInfo = "Anonymous";
+  if (cart.customerId) {
+    try {
+      const customer = await window.commercetoolsAPI.getCustomerById(cart.customerId);
+      if (customer) {
+        customerInfo = customer.email || `${customer.firstName || ""} ${customer.lastName || ""}`.trim() || "Customer";
+      }
+    } catch (error) {
+      console.warn("Failed to fetch customer:", error);
+      customerInfo = "Customer";
+    }
   }
 
   // Helper functions
@@ -388,12 +482,22 @@ const showCartSummary = (cart) => {
 
   const getCountryFlag = (countryCode) => {
     const flags = {
+      AU: "🇦🇺",
+      AT: "🇦🇹",
+      BE: "🇧🇪",
+      CH: "🇨🇭",
       DE: "🇩🇪",
-      NL: "🇳🇱",
+      DK: "��",
       ES: "🇪🇸",
-      US: "🇺🇸",
+      FR: "��",
       GB: "🇬🇧",
-      FR: "🇫🇷",
+      IT: "🇮🇹",
+      NL: "🇳🇱",
+      NO: "🇳🇴",
+      PL: "🇵🇱",
+      PT: "🇵🇹",
+      SE: "🇸🇪",
+      US: "��",
     };
     return flags[countryCode] || "🌍";
   };
@@ -435,24 +539,15 @@ const showCartSummary = (cart) => {
 
   // Build the clean summary
   const html = `
-    <!-- Cart ID -->
-    <div class="cart-summary-intro">
-      <strong>Cart ID:</strong> <span class="cart-id-display">${cart.id}</span>
-    </div>
-
-    <!-- Meta Information -->
-    <div class="cart-meta-section">
-      <div class="cart-meta-item">
-        <div class="cart-meta-label">Country</div>
-        <div class="cart-meta-value">${getCountryFlag(cart.country)} ${cart.country}</div>
+    <!-- Cart Info Section -->
+    <div class="cart-info-grid">
+      <div class="cart-info-item">
+        <div class="info-label">Cart ID</div>
+        <div class="info-value monospace">${cart.id}</div>
       </div>
-      <div class="cart-meta-item">
-        <div class="cart-meta-label">Currency</div>
-        <div class="cart-meta-value">${cart.totalPrice.currencyCode}</div>
-      </div>
-      <div class="cart-meta-item">
-        <div class="cart-meta-label">Items</div>
-        <div class="cart-meta-value">${cart.lineItemCount || cart.customLineItems?.length || 0}</div>
+      <div class="cart-info-item">
+        <div class="info-label">Customer</div>
+        <div class="info-value">${customerInfo}</div>
       </div>
     </div>
 
@@ -465,7 +560,7 @@ const showCartSummary = (cart) => {
       <table class="line-items-table">
         <thead>
           <tr>
-            <th>Product</th>
+            <th>Name</th>
             <th>Qty</th>
             <th>Price</th>
             <th>Total</th>
@@ -533,7 +628,11 @@ const showCartSummary = (cart) => {
     <div class="address-section">
       <h6>Shipping Address</h6>
       <div class="address-text">
-        ${cart.shippingAddress.firstName || ""} ${cart.shippingAddress.lastName || ""}<br>
+        ${
+          cart.shippingAddress.firstName || cart.shippingAddress.lastName
+            ? `${cart.shippingAddress.firstName || ""} ${cart.shippingAddress.lastName || ""}`.trim() + "<br>"
+            : ""
+        }
         ${cart.shippingAddress.streetName || ""} ${cart.shippingAddress.streetNumber || ""}<br>
         ${cart.shippingAddress.postalCode || ""} ${cart.shippingAddress.city || ""}<br>
         ${cart.shippingAddress.state ? cart.shippingAddress.state + "<br>" : ""}
@@ -551,7 +650,11 @@ const showCartSummary = (cart) => {
     <div class="address-section">
       <h6>Billing Address</h6>
       <div class="address-text">
-        ${cart.billingAddress.firstName || ""} ${cart.billingAddress.lastName || ""}<br>
+        ${
+          cart.billingAddress.firstName || cart.billingAddress.lastName
+            ? `${cart.billingAddress.firstName || ""} ${cart.billingAddress.lastName || ""}`.trim() + "<br>"
+            : ""
+        }
         ${cart.billingAddress.streetName || ""} ${cart.billingAddress.streetNumber || ""}<br>
         ${cart.billingAddress.postalCode || ""} ${cart.billingAddress.city || ""}<br>
         ${cart.billingAddress.state ? cart.billingAddress.state + "<br>" : ""}
@@ -651,4 +754,5 @@ export {
   showSuccessToast,
   showWarningToast,
   showInfoToast,
+  showConfirmDialog,
 };

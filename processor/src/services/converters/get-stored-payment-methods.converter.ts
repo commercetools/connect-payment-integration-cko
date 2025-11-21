@@ -3,15 +3,15 @@ import { CkoInstrument } from '../../clients/types/instrument.type';
 import {
   StoredPaymentMethod,
   StoredPaymentMethodDisplayOptions,
-  StoredPaymentMethodsResponse,
-} from '../../dtos/operations/stored-payment-methods.dto';
+  StoredPaymentMethodsResponseDTO,
+} from '../../dtos/stored-payment-methods.dto';
 import { log } from '../../libs/logger';
 
-export class StoredPaymentMethodsConverter {
+export class GetStoredPaymentMethodsConverter {
   public convert(opts: {
     ctPaymentMethods: PaymentMethod[];
     ckoInstruments: CkoInstrument[];
-  }): StoredPaymentMethodsResponse {
+  }): StoredPaymentMethodsResponseDTO {
     const ckoInstrumentsMap = this.createInstrumentsMap(opts.ckoInstruments);
 
     const storedPaymentMethods = opts.ctPaymentMethods
@@ -50,11 +50,13 @@ export class StoredPaymentMethodsConverter {
       return null;
     }
 
+    console.log('@@CT Payment Method found:', ctPaymentMethod.id, ctPaymentMethod.token?.value);
+    console.log('@@CKO Instrument found:', ckoInstrument.id);
+
     return {
       id: ctPaymentMethod.id,
       createdAt: ctPaymentMethod.createdAt,
       isDefault: ctPaymentMethod.default,
-      token: tokenValue,
       type: ctPaymentMethod.method || '',
       displayOptions: this.convertPaymentMethodDisplayOptions(ckoInstrument),
     };

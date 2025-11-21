@@ -12,30 +12,26 @@ export type ElementOptions = {
   paymentMethod: PaymentMethod;
 };
 
-
 /**
  * Base Web Component
  */
 export abstract class BaseComponent implements PaymentComponent {
   protected paymentMethod: ElementOptions["paymentMethod"];
   protected ckoWebComponents: CheckoutWebComponents;
-  protected processorUrl: BaseOptions["processorUrl"];
-  protected sessionId: BaseOptions["sessionId"];
   protected environment: BaseOptions["environment"];
   protected onComplete: (result: PaymentResult) => void;
   protected onError: (error: any, context?: { paymentReference?: string }) => void;
+  protected setStorePaymentDetails?: (enabled: boolean) => void;
 
   constructor(paymentMethod: PaymentMethod, baseOptions: BaseOptions, _componentOptions: ComponentOptions) {
     this.paymentMethod = paymentMethod;
     this.ckoWebComponents = baseOptions.ckoWebComponents;
-    this.processorUrl = baseOptions.processorUrl;
-    this.sessionId = baseOptions.sessionId;
     this.environment = baseOptions.environment;
     this.onComplete = baseOptions.onComplete;
     this.onError = baseOptions.onError;
   }
 
-  abstract submit(): Promise<void>;
+  abstract submit(opts: { storePaymentDetails?: boolean }): Promise<void>;
 
   abstract mount(selector: string): Promise<void>;
 

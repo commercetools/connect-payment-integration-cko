@@ -5,7 +5,7 @@ import { ApiBasePath, ApiRequestConfig, ApiResources } from '../types/api.type';
 
 export abstract class CkoBaseApi {
   protected async executeCall<T>(options: ApiRequestConfig): Promise<T> {
-    let res: Response, jsonResponse: CkoApiErrorData;
+    let res: Response, jsonResponse: T | undefined;
     try {
       res = await fetch(options.url, {
         method: options.method,
@@ -14,10 +14,8 @@ export abstract class CkoBaseApi {
           Accept: 'application/json',
           Authorization: `Bearer ${getConfig().getSecretKey()}`,
         },
-        body: JSON.stringify(options.data),
+        ...(options.data ? { body: JSON.stringify(options.data) } : {}),
       });
-
-      jsonResponse = await res.json();
     } catch (e: unknown) {
       log.error('Error calling CKO API', {
         err: e,
@@ -27,8 +25,23 @@ export abstract class CkoBaseApi {
       throw new CkoApiError(500);
     }
 
+    try {
+      if (res.status !== 204 && res.headers.get('content-length') !== '0') {
+        const contentType = res.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+          jsonResponse = await res.json();
+        }
+      }
+    } catch (e: unknown) {
+      log.error('Error parsing CKO API response', {
+        err: e,
+        status: res.status,
+        options: JSON.stringify(options),
+      });
+    }
+
     if (!res.ok) {
-      throw new CkoApiError(res.status, jsonResponse);
+      throw new CkoApiError(res.status, jsonResponse || undefined);
     }
 
     return jsonResponse as T;

@@ -25,7 +25,7 @@ export class CreatePaymentSessionConverter {
     return {
       processing_channel_id: getConfig().getChannelId(),
       amount: payment.amountPlanned.centAmount,
-      currency: 'USD',
+      currency: payment.amountPlanned.currencyCode,
       reference: payment.id,
       locale,
       billing: {
@@ -35,7 +35,7 @@ export class CreatePaymentSessionConverter {
       ...this.convertEnableCapture(),
       success_url: this.buildReturnUrl(payment.id, true),
       failure_url: this.buildReturnUrl(payment.id, false),
-      payment_type: getConfig().isStoredPaymentMethodsEnabled() && cart.customerId ? 'Unscheduled' : 'Regular',
+      payment_type: 'Regular',
       ...(cart.customerEmail && {
         customer: {
           email: cart.customerEmail,
@@ -85,11 +85,11 @@ export class CreatePaymentSessionConverter {
 
   private convertAddress(address: Address): CkoAddress {
     return {
-      country: 'US',
+      country: address.country,
       address_line1: address.streetName,
       address_line2: address.additionalStreetInfo,
       city: address.city,
-      state: address.state || address.region || 'NY',
+      state: address.state || address.region,
       zip: address.postalCode,
     };
   }

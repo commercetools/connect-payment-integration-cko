@@ -15,7 +15,6 @@ export const StoredPaymentMethodDisplayOptionsSchema = Type.Object({
 export const StoredPaymentMethodSchema = Type.Object({
   id: Type.String(),
   type: Type.String(),
-  token: Type.String(),
   isDefault: Type.Boolean(),
   createdAt: Type.String({ format: 'date-time' }),
   displayOptions: StoredPaymentMethodDisplayOptionsSchema,
@@ -25,6 +24,19 @@ export const StoredPaymentMethodsResponseSchema = Type.Object({
   storedPaymentMethods: Type.Array(StoredPaymentMethodSchema),
 });
 
+export const ProcessStoredPaymentRequestSchema = Type.Object({
+  paymentReference: Type.String(),
+});
+
+export const ProcessStoredPaymentResponseSchema = Type.Object({
+  id: Type.String(),
+  status: Type.String(),
+  type: Type.Optional(Type.String()),
+  paymentReference: Type.String(),
+});
+
 export type StoredPaymentMethodDisplayOptions = Static<typeof StoredPaymentMethodDisplayOptionsSchema>;
 export type StoredPaymentMethod = Static<typeof StoredPaymentMethodSchema>;
-export type StoredPaymentMethodsResponse = Static<typeof StoredPaymentMethodsResponseSchema>;
+export type StoredPaymentMethodsResponseDTO = Static<typeof StoredPaymentMethodsResponseSchema>;
+export type ProcessStoredPaymentRequestDTO = Static<typeof ProcessStoredPaymentRequestSchema>;
+export type ProcessStoredPaymentResponseDTO = Static<typeof ProcessStoredPaymentResponseSchema>;

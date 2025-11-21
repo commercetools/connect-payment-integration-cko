@@ -34,8 +34,25 @@ export const ensureProjectConfiguration = async () => {
   const apiUrl = window.__VITE_CTP_API_URL__;
   const projectKey = window.__VITE_CTP_PROJECT_KEY__;
 
-  const requiredCurrencies = ["EUR", "USD", "GBP"];
-  const requiredCountries = ["DE", "NL", "ES", "US", "GB", "FR"];
+  const requiredCurrencies = ["EUR", "USD", "GBP", "DKK", "NOK", "SEK", "PLN", "CHF", "AUD"];
+  const requiredCountries = [
+    "AU",
+    "AT",
+    "BE",
+    "DK",
+    "FR",
+    "DE",
+    "IT",
+    "NL",
+    "NO",
+    "PL",
+    "PT",
+    "ES",
+    "SE",
+    "CH",
+    "GB",
+    "US",
+  ];
 
   // Get current project settings
   const projectResponse = await fetch(`${apiUrl}/${projectKey}`, {
@@ -111,8 +128,28 @@ const getOrCreateTaxCategory = async (country) => {
   const apiUrl = window.__VITE_CTP_API_URL__;
   const projectKey = window.__VITE_CTP_PROJECT_KEY__;
 
+  // Tax rates for all countries
+  const taxRates = {
+    AU: 0.1, // Australia 10% GST
+    AT: 0.2, // Austria 20%
+    BE: 0.21, // Belgium 21%
+    DK: 0.25, // Denmark 25%
+    FR: 0.2, // France 20%
+    DE: 0.19, // Germany 19%
+    IT: 0.22, // Italy 22%
+    NL: 0.21, // Netherlands 21%
+    NO: 0.25, // Norway 25%
+    PL: 0.23, // Poland 23%
+    PT: 0.23, // Portugal 23%
+    ES: 0.21, // Spain 21%
+    SE: 0.25, // Sweden 25%
+    CH: 0.077, // Switzerland 7.7%
+    GB: 0.2, // UK 20%
+    US: 0.08, // US 8% (varies by state)
+  };
+
   // Try to get existing tax category
-  const searchResponse = await fetch(`${apiUrl}/${projectKey}/tax-categories?where=key="demo-store-standard-tax"`, {
+  const searchResponse = await fetch(`${apiUrl}/${projectKey}/tax-categories?where=key="commercestore-standard-tax"`, {
     method: "GET",
     headers: {
       Authorization: `Bearer ${token}`,
@@ -123,20 +160,62 @@ const getOrCreateTaxCategory = async (country) => {
   if (searchResponse.ok) {
     const data = await searchResponse.json();
     if (data.results.length > 0) {
-      return data.results[0];
+      const taxCategory = data.results[0];
+
+      // Check if country rate already exists
+      const hasCountryRate = taxCategory.rates.some((r) => r.country === country);
+
+      if (hasCountryRate) {
+        return taxCategory;
+      }
+
+      // Need to add rate for this country
+      const taxRate = taxRates[country];
+      if (taxRate !== undefined) {
+        console.log(`Adding tax rate for country ${country} (${taxRate * 100}%)`);
+
+        try {
+          const updateResponse = await fetch(`${apiUrl}/${projectKey}/tax-categories/${taxCategory.id}`, {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              version: taxCategory.version,
+              actions: [
+                {
+                  action: "addTaxRate",
+                  taxRate: {
+                    name: "Standard",
+                    amount: taxRate,
+                    includedInPrice: false,
+                    country: country,
+                  },
+                },
+              ],
+            }),
+          });
+
+          if (updateResponse.ok) {
+            console.log(`✓ Added tax rate for ${country}`);
+            return await updateResponse.json();
+          } else {
+            const error = await updateResponse.json();
+            console.warn(`Could not add tax rate for ${country}:`, error.message);
+            return taxCategory;
+          }
+        } catch (error) {
+          console.warn(`Could not add tax rate for ${country}:`, error.message);
+          return taxCategory;
+        }
+      }
+
+      return taxCategory;
     }
   }
 
   // Create tax category with rates for all countries
-  const taxRates = {
-    DE: 0.19, // Germany 19%
-    NL: 0.21, // Netherlands 21%
-    ES: 0.21, // Spain 21%
-    US: 0.08, // US (example) 8%
-    GB: 0.2, // UK 20%
-    FR: 0.2, // France 20%
-  };
-
   const createResponse = await fetch(`${apiUrl}/${projectKey}/tax-categories`, {
     method: "POST",
     headers: {
@@ -144,8 +223,8 @@ const getOrCreateTaxCategory = async (country) => {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      name: "Demo Store - Standard Tax",
-      key: "demo-store-standard-tax",
+      name: "commercestore - Standard Tax",
+      key: "commercestore-standard-tax",
       rates: Object.entries(taxRates).map(([country, rate]) => ({
         name: "Standard",
         amount: rate,
@@ -173,7 +252,7 @@ const getOrCreateShippingMethod = async (country, currency) => {
 
   // Try to get existing shipping method
   const searchResponse = await fetch(
-    `${apiUrl}/${projectKey}/shipping-methods?where=key="demo-store-standard-shipping"`,
+    `${apiUrl}/${projectKey}/shipping-methods?where=key="commercestore-standard-shipping"`,
     {
       method: "GET",
       headers: {
@@ -206,12 +285,49 @@ const getOrCreateShippingMethod = async (country, currency) => {
       console.log(`Adding shipping rate for zone ${zone.name} and currency ${currency}`);
 
       const shippingPrices = {
-        EUR: 500, // 5 EUR
-        USD: 600, // 6 USD
-        GBP: 400, // 4 GBP
+        EUR: 500, // €5.00
+        USD: 600, // $6.00
+        GBP: 400, // £4.00
+        DKK: 4000, // 40 DKK
+        NOK: 5000, // 50 NOK
+        SEK: 5000, // 50 SEK
+        PLN: 2000, // 20 PLN
+        CHF: 500, // 5 CHF
+        AUD: 800, // $8.00 AUD
       };
 
       try {
+        // Check if zone is already in the shipping method
+        const zoneAlreadyAdded = shippingMethod.zoneRates.some((zr) => zr.zone.id === zone.id);
+
+        const actions = [];
+
+        // Only add zone if it's not already there
+        if (!zoneAlreadyAdded) {
+          actions.push({
+            action: "addZone",
+            zone: {
+              typeId: "zone",
+              id: zone.id,
+            },
+          });
+        }
+
+        // Add shipping rate for this currency
+        actions.push({
+          action: "addShippingRate",
+          zone: {
+            typeId: "zone",
+            id: zone.id,
+          },
+          shippingRate: {
+            price: {
+              currencyCode: currency,
+              centAmount: shippingPrices[currency] || 500,
+            },
+          },
+        });
+
         const updateResponse = await fetch(`${apiUrl}/${projectKey}/shipping-methods/${shippingMethod.id}`, {
           method: "POST",
           headers: {
@@ -220,28 +336,7 @@ const getOrCreateShippingMethod = async (country, currency) => {
           },
           body: JSON.stringify({
             version: shippingMethod.version,
-            actions: [
-              {
-                action: "addZone",
-                zone: {
-                  typeId: "zone",
-                  id: zone.id,
-                },
-              },
-              {
-                action: "addShippingRate",
-                zone: {
-                  typeId: "zone",
-                  id: zone.id,
-                },
-                shippingRate: {
-                  price: {
-                    currencyCode: currency,
-                    centAmount: shippingPrices[currency] || 500,
-                  },
-                },
-              },
-            ],
+            actions: actions,
           }),
         });
 
@@ -268,9 +363,15 @@ const getOrCreateShippingMethod = async (country, currency) => {
 
   // Create shipping method with all supported currencies
   const shippingPrices = {
-    EUR: 500, // 5 EUR
-    USD: 600, // 6 USD
-    GBP: 400, // 4 GBP
+    EUR: 500, // €5.00
+    USD: 600, // $6.00
+    GBP: 400, // £4.00
+    DKK: 4000, // 40 DKK
+    NOK: 5000, // 50 NOK
+    SEK: 5000, // 50 SEK
+    PLN: 2000, // 20 PLN
+    CHF: 500, // 5 CHF
+    AUD: 800, // $8.00 AUD
   };
 
   const createResponse = await fetch(`${apiUrl}/${projectKey}/shipping-methods`, {
@@ -280,8 +381,8 @@ const getOrCreateShippingMethod = async (country, currency) => {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      name: "Demo Store - Standard Shipping",
-      key: "demo-store-standard-shipping",
+      name: "commercestore - Standard Shipping",
+      key: "commercestore-standard-shipping",
       taxCategory: {
         typeId: "tax-category",
         id: taxCategory.id,
@@ -321,7 +422,24 @@ const getOrCreateZone = async (country) => {
   const apiUrl = window.__VITE_CTP_API_URL__;
   const projectKey = window.__VITE_CTP_PROJECT_KEY__;
 
-  const supportedCountries = ["DE", "NL", "ES", "US", "GB", "FR"];
+  const supportedCountries = [
+    "AU",
+    "AT",
+    "BE",
+    "DK",
+    "FR",
+    "DE",
+    "IT",
+    "NL",
+    "NO",
+    "PL",
+    "PT",
+    "ES",
+    "SE",
+    "CH",
+    "GB",
+    "US",
+  ];
 
   // First, search for ANY zone that already contains this country
   const allZonesResponse = await fetch(`${apiUrl}/${projectKey}/zones`, {
@@ -346,8 +464,8 @@ const getOrCreateZone = async (country) => {
     }
   }
 
-  // Try to get our specific demo-store-zone
-  const searchResponse = await fetch(`${apiUrl}/${projectKey}/zones?where=key="demo-store-zone"`, {
+  // Try to get our specific commercestore-zone
+  const searchResponse = await fetch(`${apiUrl}/${projectKey}/zones?where=key="commercestore-zone"`, {
     method: "GET",
     headers: {
       Authorization: `Bearer ${token}`,
@@ -364,7 +482,7 @@ const getOrCreateZone = async (country) => {
       const countryExists = zone.locations.some((loc) => loc.country === country);
 
       if (countryExists) {
-        console.log(`✓ Country ${country} already exists in demo-store-zone`);
+        console.log(`✓ Country ${country} already exists in commercestore-zone`);
         return zone;
       }
 
@@ -389,7 +507,7 @@ const getOrCreateZone = async (country) => {
           });
 
           if (updateResponse.ok) {
-            console.log(`✓ Added country ${country} to demo-store-zone`);
+            console.log(`✓ Added country ${country} to commercestore-zone`);
             return await updateResponse.json();
           } else {
             const error = await updateResponse.json();
@@ -415,8 +533,8 @@ const getOrCreateZone = async (country) => {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      name: "Demo Store - All Countries Zone",
-      key: "demo-store-zone",
+      name: "commercestore - All Countries Zone",
+      key: "commercestore-zone",
       locations: [{ country }],
     }),
   });
@@ -436,7 +554,7 @@ const getOrCreateZone = async (country) => {
     throw new Error(error.message || "Failed to create zone");
   }
 
-  console.log(`✓ Created new demo-store-zone with country ${country}`);
+  console.log(`✓ Created new commercestore-zone with country ${country}`);
   return await createResponse.json();
 };
 
@@ -538,10 +656,6 @@ export const createCart = async ({ currency, country, customerId, customLineItem
 
   // Process custom line items with proper tax
   const processedLineItems = customLineItems.map((item) => {
-    const netAmount = item.money.centAmount;
-    const taxAmountCents = Math.round(netAmount * taxAmount);
-    const grossAmount = netAmount + taxAmountCents;
-
     return {
       ...item,
       taxCategory: {
@@ -577,7 +691,7 @@ export const createCart = async ({ currency, country, customerId, customLineItem
     custom: {
       type: {
         typeId: "type",
-        key: "demo-store-cart-type",
+        key: "commercestore-cart-type",
       },
       fields: {
         storeKey: storeKey,
@@ -644,21 +758,40 @@ export const createPreconfiguredCart = async (config) => {
   let customerId = null;
 
   if (withCustomer) {
-    // Use a fixed email for demo purposes so saved payment methods persist
-    const demoEmail = "demo-customer@example.com";
+    // Use different email per country for demo purposes
+    const customerData = {
+      AU: { email: "customer-au@example.com", firstName: "Olivia", lastName: "Smith" },
+      AT: { email: "customer-at@example.com", firstName: "Anna", lastName: "Müller" },
+      BE: { email: "customer-be@example.com", firstName: "Sophie", lastName: "Dubois" },
+      CH: { email: "customer-ch@example.com", firstName: "Emma", lastName: "Weber" },
+      DE: { email: "customer-de@example.com", firstName: "Emma", lastName: "Schmidt" },
+      DK: { email: "customer-dk@example.com", firstName: "Emma", lastName: "Jensen" },
+      ES: { email: "customer-es@example.com", firstName: "Sofía", lastName: "García" },
+      FR: { email: "customer-fr@example.com", firstName: "Emma", lastName: "Martin" },
+      GB: { email: "customer-gb@example.com", firstName: "Emily", lastName: "Jones" },
+      IT: { email: "customer-it@example.com", firstName: "Sofia", lastName: "Rossi" },
+      NL: { email: "customer-nl@example.com", firstName: "Emma", lastName: "de Jong" },
+      NO: { email: "customer-no@example.com", firstName: "Emma", lastName: "Hansen" },
+      PL: { email: "customer-pl@example.com", firstName: "Julia", lastName: "Nowak" },
+      PT: { email: "customer-pt@example.com", firstName: "Maria", lastName: "Silva" },
+      SE: { email: "customer-se@example.com", firstName: "Emma", lastName: "Andersson" },
+      US: { email: "customer-us@example.com", firstName: "Emma", lastName: "Johnson" },
+    };
+
+    const demoCustomer = customerData[country] || customerData["US"];
 
     // Check if customer already exists
-    const existingCustomers = await searchCustomerByEmail(demoEmail);
+    const existingCustomers = await searchCustomerByEmail(demoCustomer.email);
 
     if (existingCustomers.length > 0) {
       // Use existing customer
       customerId = existingCustomers[0].id;
-      console.log(`✓ Using existing demo customer: ${demoEmail}`);
+      console.log(`✓ Using existing demo customer: ${demoCustomer.email}`);
     } else {
       // Create new demo customer
-      const customer = await createCustomer(demoEmail, "Demo", "Customer");
+      const customer = await createCustomer(demoCustomer.email, demoCustomer.firstName, demoCustomer.lastName);
       customerId = customer.id;
-      console.log(`✓ Created new demo customer: ${demoEmail}`);
+      console.log(`✓ Created new demo customer: ${demoCustomer.email}`);
     }
   }
 
@@ -753,6 +886,29 @@ export const getCartById = async (cartId) => {
 };
 
 /**
+ * Get customer by ID from commercetools
+ */
+export const getCustomerById = async (customerId) => {
+  const token = await getCtpToken();
+  const apiUrl = window.__VITE_CTP_API_URL__;
+  const projectKey = window.__VITE_CTP_PROJECT_KEY__;
+
+  const response = await fetch(`${apiUrl}/${projectKey}/customers/${customerId}`, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (!response.ok) {
+    return null; // Return null if customer not found
+  }
+
+  return await response.json();
+};
+
+/**
  * Create a new customer in commercetools
  */
 export const createCustomer = async (email, firstName, lastName) => {
@@ -794,7 +950,7 @@ export const getSessionId = async (cartId) => {
 
   const sessionMetadata = {
     processorUrl: window.__VITE_PROCESSOR_URL__,
-    paymentInterface: "cko-test",
+    checkoutTransactionItemId: new Date().getTime().toString(),
     allowedPaymentMethods: [
       "ach",
       "alma",
@@ -850,7 +1006,7 @@ const getOrCreateCartStoreType = async () => {
   const projectKey = window.__VITE_CTP_PROJECT_KEY__;
 
   // Try to get existing type
-  const searchResponse = await fetch(`${apiUrl}/${projectKey}/types?where=key="demo-store-cart-type"`, {
+  const searchResponse = await fetch(`${apiUrl}/${projectKey}/types?where=key="commercestore-cart-type"`, {
     method: "GET",
     headers: {
       Authorization: `Bearer ${token}`,
@@ -874,9 +1030,9 @@ const getOrCreateCartStoreType = async () => {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      key: "demo-store-cart-type",
+      key: "commercestore-cart-type",
       name: {
-        en: "Demo Store - Custom Cart Type",
+        en: "commercestore - Custom Cart Type",
       },
       resourceTypeIds: ["order"],
       fieldDefinitions: [
