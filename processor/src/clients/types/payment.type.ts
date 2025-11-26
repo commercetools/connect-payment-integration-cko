@@ -94,6 +94,17 @@ export interface CkoPaymentResponse {
     card_wallet_type?: string;
     [key: string]: unknown;
   };
+  '3ds'?: {
+    downgraded?: boolean;
+    enrolled?: boolean;
+    upgrade_reason?: string;
+    [key: string]: unknown;
+  };
+  _links?: {
+    self: { href: string };
+    redirect?: { href: string };
+    [key: string]: unknown;
+  };
   [key: string]: unknown;
 }
 

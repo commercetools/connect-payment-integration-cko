@@ -2,7 +2,7 @@ import {
   PaymentSessionResponse,
   SubmitPaymentSessionRequest,
   SubmitPaymentSessionResponse,
-} from '../clients/types/payment-session.type';
+} from '@app/clients/types/payment-session.type';
 
 export enum PaymentOutcome {
   AUTHORIZED = 'Authorized',

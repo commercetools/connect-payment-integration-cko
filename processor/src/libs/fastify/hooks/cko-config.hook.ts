@@ -1,9 +1,9 @@
 import { FastifyRequest } from 'fastify';
 import { Cart, CommercetoolsCartService, CommercetoolsOrderService, Order } from '@commercetools/connect-payments-sdk';
-import { getConfig } from '../../../config/config';
+import { getConfig } from '@app/config/config';
+import { log } from '@lib/logger';
+import { CkoWebhookEvent } from '@app/clients/types/webhook.type';
 import { getCartIdFromContext, updateRequestContext } from '../context/context';
-import { log } from '../../logger';
-import { CkoWebhookEvent } from '../../../clients/types/webhook.type';
 
 /**
  * Fastify hook for multi-channel Checkout.com configuration resolution

@@ -4,16 +4,16 @@ import {
 } from '@commercetools/connect-payments-sdk';
 import { FastifyInstance, FastifyPluginOptions } from 'fastify';
 
-import { CkoConfigHook } from '../libs/fastify/hooks/cko-config.hook';
+import { CkoConfigHook } from '@lib/fastify/hooks/cko-config.hook';
 import {
   ProcessStoredPaymentRequestDTO,
   ProcessStoredPaymentResponseDTO,
   ProcessStoredPaymentResponseSchema,
   StoredPaymentMethodsResponseDTO,
   StoredPaymentMethodsResponseSchema,
-} from '../dtos/stored-payment-methods.dto';
+} from '@app/dtos/stored-payment-methods.dto';
 import { Type } from '@sinclair/typebox';
-import { CkoStoredPaymentMethodService } from '../services/cko-stored-payment-method.service';
+import { CkoStoredPaymentMethodService } from '@app/services/cko-stored-payment-method.service';
 
 type StoredPaymentMethodRoutesOptions = {
   storedPaymentMethodService: CkoStoredPaymentMethodService;
@@ -70,6 +70,28 @@ export const storedPaymentMethodRoutes = async (
 
       const res = await opts.storedPaymentMethodService.processStoredPayment(id, { data });
       return reply.status(200).send(res);
+    },
+  );
+
+  fastify.get<{
+    Querystring: {
+      paymentReference: string;
+      success: boolean;
+      'cko-session-id'?: string;
+      [key: string]: unknown;
+    };
+  }>(
+    '/stored-payment-methods/:id/payments/confirm',
+    {
+      preHandler: [opts.sessionQueryParamAuthHook.authenticate(), opts.ckoConfigHook.setConfigKey()],
+    },
+    async (request, reply) => {
+      const res = await opts.storedPaymentMethodService.confirmStoredPayment({
+        paymentReference: request.query.paymentReference,
+        isSuccess: request.query.success,
+      });
+
+      return reply.redirect(res.merchantReturnUrl);
     },
   );
 

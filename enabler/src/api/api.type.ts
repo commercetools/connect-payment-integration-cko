@@ -42,5 +42,9 @@ export type PayWithStoredMethodResponse = {
   id: string;
   status: string;
   paymentReference: string;
+  action?: {
+    type?: string;
+    url: string;
+  };
   [key: string]: unknown;
 };

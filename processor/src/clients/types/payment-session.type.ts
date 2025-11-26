@@ -7,7 +7,7 @@ export type CkoAddress = {
   zip?: string;
 };
 
-export enum CkoPaymentStatus {
+export enum CkoPaymentSessionStatus {
   APPROVED = 'Approved',
   DECLINED = 'Declined',
   ACTION_REQUIRED = 'Action Required',
@@ -94,7 +94,7 @@ export type SubmitPaymentSessionRequest = {
 
 export interface SubmitPaymentSessionResponse {
   id: string;
-  status: CkoPaymentStatus;
+  status: CkoPaymentSessionStatus;
   type: string;
   action?: Record<string, unknown>;
 }

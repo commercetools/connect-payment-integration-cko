@@ -1,4 +1,4 @@
-import { CkoCapturePaymentRequest } from '../../clients/types/payment.type';
+import { CkoCapturePaymentRequest } from '@app/clients/types/payment.type';
 import { CapturePaymentRequest } from '../types/operation.type';
 
 export class CapturePaymentConverter {

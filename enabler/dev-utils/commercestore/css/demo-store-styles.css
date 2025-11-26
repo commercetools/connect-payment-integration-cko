@@ -177,6 +177,51 @@ body {
   transform: rotate(180deg);
 }
 
+/* Dropdown menu for "More" actions */
+.header-actions .dropdown {
+  display: flex;
+}
+
+.header-actions .dropdown-menu {
+  min-width: 220px;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  padding: 8px 0;
+  margin-top: 8px;
+}
+
+.header-actions .dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  font-size: 0.875rem;
+  color: #191741;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.header-actions .dropdown-item:hover {
+  background: #f7f2ea;
+  color: #191741;
+}
+
+.header-actions .dropdown-item:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.header-actions .dropdown-item svg {
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+.header-actions .dropdown-divider {
+  margin: 8px 0;
+  border-top: 1px solid #e0e0e0;
+}
 .btn-outline-danger {
   display: flex;
   align-items: center;
@@ -396,6 +441,64 @@ body {
     padding-left: 15px;
 }
 
+/* Unavailable payment methods styling */
+.payment-method-item.unavailable {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: #f5f5f5;
+  border-color: #d0d0d0;
+  position: relative;
+}
+
+.payment-method-item.unavailable:hover {
+  border-color: #d0d0d0;
+  background: #f5f5f5;
+}
+
+.payment-method-item.unavailable::after {
+  content: "Not available";
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.7rem;
+  color: #999;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Checking availability state */
+.payment-method-item.checking {
+  position: relative;
+  opacity: 0.7;
+}
+
+.payment-method-item.checking::after {
+  content: "Checking...";
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.7rem;
+  color: #6359ff;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.5;
+  }
+}
 .payment-method-name {
   font-weight: 600;
   font-size: 0.9rem;
@@ -454,6 +557,8 @@ body {
   display: flex;
   flex-direction: column;
   padding-top: 20px;
+  overflow-y: auto;
+    overflow-x: hidden;
 }
 
 .payment-details-placeholder {
@@ -472,16 +577,27 @@ body {
   color: #adb5bd;
 }
 
+#payment-components-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  height: 100%;
+}
 .payment-component-wrapper {
   display: none;
   animation: fadeIn 0.3s ease-in;
+  height: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
 }
 
 .payment-component-wrapper.active {
-  display: block;
-}
-
-@keyframes fadeIn {
+  display: flex;
+    flex-direction: column;
+  }
+  
+  @keyframes fadeIn {
   from {
     opacity: 0;
     transform: translateY(10px);
@@ -495,7 +611,7 @@ body {
 .payment-component-container {
   margin: 20px 30px 20px 30px;
   padding: 0;
-    background: transparent;
+  background: transparent;
 }
 
 /* Saved Payment Method Display */
@@ -1758,7 +1874,80 @@ body {
   background: white;
 }
 
-/* Cart Info Grid */
+/* Cart Detail Section - matching payment details style */
+.cart-detail-section {
+  margin-bottom: 25px;
+}
+
+.cart-detail-section h6 {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #191741;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 15px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid #6359ff;
+}
+
+.cart-detail-section .detail-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 15px;
+}
+
+.cart-detail-section .detail-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.cart-detail-section .detail-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+}
+
+.cart-detail-section .detail-value {
+  font-size: 0.938rem;
+  color: #191741;
+  font-weight: 400;
+}
+
+.cart-detail-section .detail-value.monospace {
+  font-family: "Courier New", monospace;
+  font-size: 0.875rem;
+  color: #191741;
+}
+
+.cart-detail-section .detail-value-with-copy {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cart-detail-section .btn-copy {
+  background: none;
+  border: none;
+  padding: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: opacity 0.2s ease;
+  flex-shrink: 0;
+  opacity: 0.6;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.cart-detail-section .btn-copy:hover {
+  opacity: 1;
+}
+
+/* Cart Info Grid (legacy - keep for backwards compatibility) */
 .cart-info-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -1794,6 +1983,31 @@ body {
     font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
     font-size: 0.85rem;
     color: #6359ff;
+}
+
+.info-value-with-copy {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-copy {
+  background: none;
+  border: none;
+  padding: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: opacity 0.2s ease;
+  flex-shrink: 0;
+  opacity: 0.6;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.btn-copy:hover {
+  opacity: 1;
 }
 
 /* Cart Meta Info */

@@ -3,6 +3,19 @@
  * This module contains all UI-related functions for the checkout process
  */
 
+/**
+ * Copy text to clipboard
+ */
+const copyToClipboard = (text, button) => {
+  navigator.clipboard.writeText(text).then(() => {
+    const originalContent = button.innerHTML;
+    button.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#078b5c" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+    setTimeout(() => button.innerHTML = originalContent, 1500);
+  }).catch(err => {
+    console.error('Failed to copy:', err);
+  });
+};
+
 // DOM element references (will be initialized on load)
 let paymentComponentsArea;
 let savedMethodsList;
@@ -377,33 +390,44 @@ const clearSelection = () => {
     wrapper.classList.remove("active");
   });
 
-  paymentPlaceholder.classList.remove("hidden");
+  const placeholder = paymentPlaceholder || document.getElementById("payment-placeholder");
+  if (placeholder) placeholder.classList.remove("hidden");
 };
 
 /**
  * Clear all payment methods from the UI
  */
 const clearPaymentMethods = () => {
-  savedMethodsList.innerHTML = "";
-  availableMethodsList.innerHTML = "";
-  paymentComponentsArea.innerHTML = "";
-  methodsDivider.classList.add("hidden");
-  paymentPlaceholder.classList.remove("hidden");
+  const savedList = savedMethodsList || document.getElementById("saved-methods-list");
+  const availableList = availableMethodsList || document.getElementById("available-methods-list");
+  const componentsArea = paymentComponentsArea || document.getElementById("payment-components-area");
+  const divider = methodsDivider || document.getElementById("methods-divider");
+  const placeholder = paymentPlaceholder || document.getElementById("payment-placeholder");
+
+  if (savedList) savedList.innerHTML = "";
+  if (availableList) availableList.innerHTML = "";
+  if (componentsArea) componentsArea.innerHTML = "";
+  if (divider) divider.classList.add("hidden");
+  if (placeholder) placeholder.classList.remove("hidden");
 };
 
 /**
  * Show loading spinner
  */
 const showSpinner = () => {
-  paymentPlaceholder.classList.add("hidden");
-  spinner.classList.remove("hidden");
+  const placeholder = paymentPlaceholder || document.getElementById("payment-placeholder");
+  const spinnerElement = spinner || document.getElementById("spinner");
+
+  if (placeholder) placeholder.classList.add("hidden");
+  if (spinnerElement) spinnerElement.classList.remove("hidden");
 };
 
 /**
  * Hide loading spinner
  */
 const hideSpinner = () => {
-  spinner.classList.add("hidden");
+  const spinnerElement = spinner || document.getElementById("spinner");
+  if (spinnerElement) spinnerElement.classList.add("hidden");
 };
 
 /**
@@ -462,7 +486,8 @@ const showCartSummary = async (cart) => {
   let customerInfo = "Anonymous";
   if (cart.customerId) {
     try {
-      const customer = await window.commercetoolsAPI.getCustomerById(cart.customerId);
+      const { getCustomerById } = await import("/dev-utils/commercestore/js/checkout-main.js");
+      const customer = await getCustomerById(cart.customerId);
       if (customer) {
         customerInfo = customer.email || `${customer.firstName || ""} ${customer.lastName || ""}`.trim() || "Customer";
       }
@@ -478,28 +503,6 @@ const showCartSummary = async (cart) => {
       style: "currency",
       currency: currencyCode,
     }).format(centAmount / 100);
-  };
-
-  const getCountryFlag = (countryCode) => {
-    const flags = {
-      AU: "🇦🇺",
-      AT: "🇦🇹",
-      BE: "🇧🇪",
-      CH: "🇨🇭",
-      DE: "🇩🇪",
-      DK: "��",
-      ES: "🇪🇸",
-      FR: "��",
-      GB: "🇬🇧",
-      IT: "🇮🇹",
-      NL: "🇳🇱",
-      NO: "🇳🇴",
-      PL: "🇵🇱",
-      PT: "🇵🇹",
-      SE: "🇸🇪",
-      US: "��",
-    };
-    return flags[countryCode] || "🌍";
   };
 
   // Calculate totals
@@ -537,17 +540,31 @@ const showCartSummary = async (cart) => {
     cartTotalPreview.textContent = formatPrice(grandTotal, cart.totalPrice.currencyCode);
   }
 
-  // Build the clean summary
+  // Build the clean summary with payment-details style
   const html = `
     <!-- Cart Info Section -->
-    <div class="cart-info-grid">
-      <div class="cart-info-item">
-        <div class="info-label">Cart ID</div>
-        <div class="info-value monospace">${cart.id}</div>
-      </div>
-      <div class="cart-info-item">
-        <div class="info-label">Customer</div>
-        <div class="info-value">${customerInfo}</div>
+    <div class="cart-detail-section">
+      <h6>Cart Information</h6>
+      <div class="detail-grid">
+        <div class="detail-item">
+          <span class="detail-label">Cart ID</span>
+          <div class="detail-value-with-copy">
+            <span class="detail-value monospace">${cart.id}</span>
+            <button class="btn-copy" onclick="copyToClipboard('${cart.id}', this)" title="Copy to clipboard"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg></button>
+          </div>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">Customer</span>
+          <span class="detail-value">${customerInfo}</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">Currency</span>
+          <span class="detail-value">${cart.totalPrice.currencyCode}</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">Created At</span>
+          <span class="detail-value">${new Date(cart.createdAt).toLocaleString()}</span>
+        </div>
       </div>
     </div>
 
@@ -555,7 +572,7 @@ const showCartSummary = async (cart) => {
     ${
       cart.customLineItems && cart.customLineItems.length > 0
         ? `
-    <div class="line-items-section">
+    <div class="cart-detail-section">
       <h6>Products</h6>
       <table class="line-items-table">
         <thead>
@@ -590,7 +607,7 @@ const showCartSummary = async (cart) => {
     ${
       cart.lineItems && cart.lineItems.length > 0
         ? `
-    <div class="line-items-section">
+    <div class="cart-detail-section">
       <h6>Products</h6>
       <table class="line-items-table">
         <thead>
@@ -625,18 +642,29 @@ const showCartSummary = async (cart) => {
     ${
       cart.shippingAddress
         ? `
-    <div class="address-section">
+    <div class="cart-detail-section">
       <h6>Shipping Address</h6>
-      <div class="address-text">
-        ${
-          cart.shippingAddress.firstName || cart.shippingAddress.lastName
-            ? `${cart.shippingAddress.firstName || ""} ${cart.shippingAddress.lastName || ""}`.trim() + "<br>"
-            : ""
-        }
-        ${cart.shippingAddress.streetName || ""} ${cart.shippingAddress.streetNumber || ""}<br>
-        ${cart.shippingAddress.postalCode || ""} ${cart.shippingAddress.city || ""}<br>
-        ${cart.shippingAddress.state ? cart.shippingAddress.state + "<br>" : ""}
-        ${cart.shippingAddress.country}
+      <div class="detail-grid">
+        <div class="detail-item">
+          <span class="detail-label">Name</span>
+          <span class="detail-value">${
+            cart.shippingAddress.firstName || cart.shippingAddress.lastName
+              ? `${cart.shippingAddress.firstName || ""} ${cart.shippingAddress.lastName || ""}`.trim()
+              : "N/A"
+          }</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">Street</span>
+          <span class="detail-value">${cart.shippingAddress.streetName || ""} ${cart.shippingAddress.streetNumber || ""}</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">City</span>
+          <span class="detail-value">${cart.shippingAddress.postalCode || ""} ${cart.shippingAddress.city || ""}</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">Country</span>
+          <span class="detail-value">${cart.shippingAddress.country}</span>
+        </div>
       </div>
     </div>
     `
@@ -647,18 +675,29 @@ const showCartSummary = async (cart) => {
     ${
       cart.billingAddress
         ? `
-    <div class="address-section">
+    <div class="cart-detail-section">
       <h6>Billing Address</h6>
-      <div class="address-text">
-        ${
-          cart.billingAddress.firstName || cart.billingAddress.lastName
-            ? `${cart.billingAddress.firstName || ""} ${cart.billingAddress.lastName || ""}`.trim() + "<br>"
-            : ""
-        }
-        ${cart.billingAddress.streetName || ""} ${cart.billingAddress.streetNumber || ""}<br>
-        ${cart.billingAddress.postalCode || ""} ${cart.billingAddress.city || ""}<br>
-        ${cart.billingAddress.state ? cart.billingAddress.state + "<br>" : ""}
-        ${cart.billingAddress.country}
+      <div class="detail-grid">
+        <div class="detail-item">
+          <span class="detail-label">Name</span>
+          <span class="detail-value">${
+            cart.billingAddress.firstName || cart.billingAddress.lastName
+              ? `${cart.billingAddress.firstName || ""} ${cart.billingAddress.lastName || ""}`.trim()
+              : "N/A"
+          }</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">Street</span>
+          <span class="detail-value">${cart.billingAddress.streetName || ""} ${cart.billingAddress.streetNumber || ""}</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">City</span>
+          <span class="detail-value">${cart.billingAddress.postalCode || ""} ${cart.billingAddress.city || ""}</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">Country</span>
+          <span class="detail-value"> ${cart.billingAddress.country}</span>
+        </div>
       </div>
     </div>
     `
@@ -669,63 +708,67 @@ const showCartSummary = async (cart) => {
     ${
       Object.keys(customFields).length > 0
         ? `
-    <div class="custom-fields-section">
+    <div class="cart-detail-section">
       <h6>Custom Fields</h6>
-      ${Object.entries(customFields)
-        .map(
-          ([key, value]) => `
-        <div class="custom-field-item">
-          <span class="custom-field-label">${key}</span>
-          <span class="custom-field-value">${value}</span>
-        </div>
-      `
-        )
-        .join("")}
+      <div class="detail-grid">
+        ${Object.entries(customFields)
+          .map(
+            ([key, value]) => `
+          <div class="detail-item">
+            <span class="detail-label">${key}</span>
+            <span class="detail-value monospace">${typeof value === 'object' ? JSON.stringify(value) : value}</span>
+          </div>
+        `
+          )
+          .join("")}
+      </div>
     </div>
     `
         : ""
     }
 
     <!-- Totals (at the end) -->
-    <div class="totals-section">
+    <div class="cart-detail-section">
       <h6>Order Summary</h6>
-      <div class="total-row">
-        <span class="total-label">Subtotal</span>
-        <span class="total-value">${formatPrice(subtotal, cart.totalPrice.currencyCode)}</span>
-      </div>
-      ${
-        shippingCost > 0
-          ? `
-      <div class="total-row">
-        <span class="total-label">Shipping</span>
-        <span class="total-value">${formatPrice(shippingCost, cart.totalPrice.currencyCode)}</span>
-      </div>
-      `
-          : ""
-      }
-      ${
-        totalDiscount > 0
-          ? `
-      <div class="total-row discount-row">
-        <span class="total-label">Discount</span>
-        <span class="total-value">-${formatPrice(totalDiscount, cart.totalPrice.currencyCode)}</span>
-      </div>
-      `
-          : ""
-      }
-      ${
-        totalTax > 0
-          ? `
-      <div class="total-row">
-        <span class="total-label">Tax</span>
-        <span class="total-value">${formatPrice(totalTax, cart.totalPrice.currencyCode)}</span>
-      </div>
-      `
-          : ""
-      }
-      <div class="total-row grand-total">
-        <span class="total-label">Total</span>
-        <span class="total-value">${formatPrice(grandTotal, cart.totalPrice.currencyCode)}</span>
+      <div class="detail-grid">
+        <div class="detail-item">
+          <span class="detail-label">Subtotal</span>
+          <span class="detail-value">${formatPrice(subtotal, cart.totalPrice.currencyCode)}</span>
+        </div>
+        ${
+          shippingCost > 0
+            ? `
+        <div class="detail-item">
+          <span class="detail-label">Shipping</span>
+          <span class="detail-value">${formatPrice(shippingCost, cart.totalPrice.currencyCode)}</span>
+        </div>
+        `
+            : ""
+        }
+        ${
+          totalDiscount > 0
+            ? `
+        <div class="detail-item">
+          <span class="detail-label">Discount</span>
+          <span class="detail-value" style="color: #078b5c;">-${formatPrice(totalDiscount, cart.totalPrice.currencyCode)}</span>
+        </div>
+        `
+            : ""
+        }
+        ${
+          totalTax > 0
+            ? `
+        <div class="detail-item">
+          <span class="detail-label">Tax</span>
+          <span class="detail-value">${formatPrice(totalTax, cart.totalPrice.currencyCode)}</span>
+        </div>
+        `
+            : ""
+        }
+        <div class="detail-item" style="padding-top: 15px; border-top: 2px solid #6359ff; margin-top: 10px;">
+          <span class="detail-label" style="font-weight: 600; font-size: 1rem;">Total</span>
+          <span class="detail-value" style="font-weight: 600; font-size: 1.1rem; color: #6359ff;">${formatPrice(grandTotal, cart.totalPrice.currencyCode)}</span>
+        </div>
       </div>
     </div>
   `;
@@ -755,4 +798,10 @@ export {
   showWarningToast,
   showInfoToast,
   showConfirmDialog,
+  copyToClipboard,
 };
+
+// Make copyToClipboard available globally for HTML onclick handlers
+if (typeof window !== 'undefined') {
+  window.copyToClipboard = copyToClipboard;
+}

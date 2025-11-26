@@ -5,7 +5,7 @@
 
 import { Enabler } from "/src/main.ts";
 import {
-  getCtpToken,
+  getJwtToken,
   ensureProjectConfiguration,
   createCart,
   createPreconfiguredCart,
@@ -14,7 +14,8 @@ import {
   getCustomerById,
   getCartById,
   getSessionId,
-} from "/dev-utils/api.js";
+  getPaymentById,
+} from "/dev-utils/commercestore/js/api.js";
 import {
   initializeUI,
   createSavedMethodItem,
@@ -33,7 +34,7 @@ import {
   showSuccessToast,
   showWarningToast,
   showInfoToast,
-} from "/dev-utils/checkout-ui.js";
+} from "/dev-utils/commercestore/js/checkout-ui.js";
 
 // State
 let methodsStore = new Map();
@@ -55,6 +56,9 @@ let btnReset;
 let btnQuickCart;
 let btnCustomCart;
 let btnCartSummary;
+let moreActionsDropdown;
+let menuCartSummary;
+let menuReset;
 
 /**
  * Initialize the application
@@ -72,6 +76,9 @@ const init = () => {
   btnQuickCart = document.getElementById("btnQuickCart");
   btnCustomCart = document.getElementById("btnCustomCart");
   btnCartSummary = document.getElementById("btnCartSummary");
+  moreActionsDropdown = document.getElementById("moreActionsDropdown");
+  menuCartSummary = document.getElementById("menuCartSummary");
+  menuReset = document.getElementById("menuReset");
 
   // Initialize UI module
   initializeUI({
@@ -85,6 +92,71 @@ const init = () => {
 
   // Setup event listeners
   setupEventListeners();
+};
+
+/**
+ * Check if user is returning from a redirect payment flow
+ */
+const checkPaymentRedirectReturn = async () => {
+  const urlParams = new URLSearchParams(window.location.search);
+  const paymentReference = urlParams.get("paymentReference");
+
+  if (!paymentReference) {
+    return false; // Not a redirect return
+  }
+
+  console.log("Detected payment redirect return:", paymentReference);
+
+  // Get DOM elements directly (since init() hasn't been called yet)
+  const spinnerElement = document.getElementById("spinner");
+  const paymentPlaceholderElement = document.getElementById("payment-placeholder");
+  const checkoutContentElement = document.getElementById("checkout-content");
+
+  // Hide checkout content and show loading state
+  if (checkoutContentElement) checkoutContentElement.classList.add("hidden");
+  if (paymentPlaceholderElement) paymentPlaceholderElement.classList.add("hidden");
+  if (spinnerElement) spinnerElement.classList.remove("hidden");
+
+  try {
+    // Fetch payment from CommerceTools
+    const payment = await getPaymentById(paymentReference);
+
+    // Clean URL (remove query params)
+    window.history.replaceState({}, document.title, window.location.pathname);
+
+    // Check for successful transaction
+    const hasSuccessfulTransaction = payment.transactions.some(
+      (tx) =>
+        (tx.type === "Authorization" || tx.type === "Charge") && (tx.state === "Success" || tx.state === "Pending")
+    );
+
+    // Hide loading state
+    if (spinnerElement) spinnerElement.classList.add("hidden");
+
+    if (hasSuccessfulTransaction) {
+      // Show success modal
+      showSuccess(paymentReference);
+    } else {
+      // Show error modal
+      const errorMessage =
+        payment.transactions.length > 0
+          ? `Payment ${payment.transactions[0].state.toLowerCase()}`
+          : "Payment could not be completed";
+      showError(errorMessage);
+    }
+
+    return true; // Handled redirect return
+  } catch (error) {
+    console.error("Error checking payment status after redirect:", error);
+
+    // Hide loading state
+    if (spinnerElement) spinnerElement.classList.add("hidden");
+
+    // Show error modal
+    showError("Unable to verify payment status. Please contact support.");
+
+    return true; // Still handled as redirect return
+  }
 };
 
 /**
@@ -125,13 +197,15 @@ const setupEventListeners = () => {
   document.getElementById("btnAddLineItem").addEventListener("click", handleAddLineItem);
 
   // Cart Summary
-  btnCartSummary.addEventListener("click", () => showCartSummary(currentCart));
+  if (btnCartSummary) btnCartSummary.addEventListener("click", () => showCartSummary(currentCart));
+  if (menuCartSummary) menuCartSummary.addEventListener("click", () => showCartSummary(currentCart));
 
   // Load Checkout
   document.getElementById("btnLoadCheckout").addEventListener("click", handleLoadCheckout);
 
   // Reset
-  btnReset.addEventListener("click", resetCheckoutState);
+  if (btnReset) btnReset.addEventListener("click", resetCheckoutState);
+  if (menuReset) menuReset.addEventListener("click", resetCheckoutState);
 
   // Setup modal close event listeners
   $("#successModal").on("hidden.bs.modal", function () {
@@ -415,7 +489,13 @@ const loadCheckout = async (cartId) => {
     currentCart = await getCartById(cartId);
 
     // Load available payment methods
-    const res = await fetch(`${__VITE_PROCESSOR_URL__}/operations/payment-components`);
+    const token = await getJwtToken();
+    const res = await fetch(`${__VITE_PROCESSOR_URL__}/operations/payment-components`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
     const paymentMethods = await res.json();
 
     const sessionId = await getSessionId(cartId, false);
@@ -468,25 +548,83 @@ const loadCheckout = async (cartId) => {
       methodsDivider.classList.remove("hidden");
     }
 
-    // Register available payment methods
+    // Register available payment methods - render UI immediately
+    const availabilityChecks = [];
     for (const method of paymentMethods.components) {
       const builder = await enabler.createComponentBuilder(method.type);
+
       methodsStore.set(method.type, {
         type: method.type,
         meta: method,
         builder,
         mounted: false,
+        isAvailable: null, // Will be checked in background
       });
+
       createPaymentMethodItem(method.type, method, selectPaymentMethod);
       createPaymentMethodContainer(method.type);
+
+      // Add loading state to method item
+      const methodItem = document.querySelector(`[data-type="${method.type}"]`);
+      if (methodItem) {
+        methodItem.classList.add("checking");
+      }
+
+      // Check availability in parallel
+      const checkPromise = (async () => {
+        try {
+          const tempComponent = await builder.build({ showPayButton: false });
+          const isAvailable = await tempComponent.isAvailable();
+
+          // Update store
+          const methodData = methodsStore.get(method.type);
+          if (methodData) {
+            methodData.isAvailable = isAvailable;
+          }
+
+          // Update UI
+          const item = document.querySelector(`[data-type="${method.type}"]`);
+          if (item) {
+            item.classList.remove("checking");
+            if (!isAvailable) {
+              item.classList.add("unavailable");
+              item.title = "This payment method is not available for this cart";
+            }
+          }
+        } catch (error) {
+          console.error(`Error checking availability for ${method.type}:`, error);
+          // On error, assume unavailable
+          const methodData = methodsStore.get(method.type);
+          if (methodData) {
+            methodData.isAvailable = false;
+          }
+          const item = document.querySelector(`[data-type="${method.type}"]`);
+          if (item) {
+            item.classList.remove("checking");
+            item.classList.add("unavailable");
+            item.title = "Could not verify availability";
+          }
+        }
+      })();
+
+      availabilityChecks.push(checkPromise);
     }
 
+    // Show UI immediately, don't wait for availability checks
     hideSpinner();
     showCheckoutContent();
-    btnReset.style.display = "flex";
-    btnCartSummary.style.display = "flex";
+    // Dropdown is already visible, just enable cart actions
+    const cartSummaryBtn = document.getElementById("menuCartSummary");
+    const resetBtn = document.getElementById("menuReset");
+    if (cartSummaryBtn) cartSummaryBtn.disabled = false;
+    if (resetBtn) resetBtn.disabled = false;
 
     showSuccessToast(`Cart loaded successfully: ${cartId.substring(0, 8)}...`);
+
+    // Wait for all availability checks to complete in background
+    Promise.all(availabilityChecks).then(() => {
+      console.log("All payment method availability checks completed");
+    });
   } catch (error) {
     console.error("Error loading checkout:", error);
     showErrorToast(error.message || "Failed to load checkout. Please check your cart ID and try again.");
@@ -571,11 +709,23 @@ const payWithSavedMethod = async (savedId) => {
  * Select payment method
  */
 const selectPaymentMethod = async (type) => {
-  clearSelection();
-  document.querySelector(`[data-type="${type}"]`)?.classList.add("selected");
-
+  // Check if method is available
   const method = methodsStore.get(type);
   if (!method) return;
+
+  // If still checking availability, wait for it
+  if (method.isAvailable === null) {
+    showInfoToast("Checking availability...");
+    return;
+  }
+
+  if (method.isAvailable === false) {
+    showWarningToast("This payment method is not available for this cart");
+    return;
+  }
+
+  clearSelection();
+  document.querySelector(`[data-type="${type}"]`)?.classList.add("selected");
 
   selectedMethod = method;
 
@@ -621,9 +771,12 @@ const loadPaymentComponent = async (type) => {
 
     await component.mount(`#component-${type}`);
 
-    // Show store payment method checkbox if it's a card
-    if (type === "card" || builder.supportsStorePaymentDetails) {
-      document.getElementById(`storePaymentMethod-container-${type}`).classList.remove("hidden");
+    // Show store payment method checkbox if it's a card and stored payment methods are enabled
+    if (type === "card") {
+      const isEnabled = await enabler.isStoredPaymentMethodsEnabled();
+      if (isEnabled) {
+        document.getElementById(`storePaymentMethod-container-${type}`).classList.remove("hidden");
+      }
     }
 
     // If component has custom submit
@@ -640,6 +793,18 @@ const loadPaymentComponent = async (type) => {
           return;
         }
 
+        // Validate component before submitting (if isValid method exists)
+        if (typeof component.isValid === 'function') {
+          const isValid = await component.isValid();
+          if (!isValid) {
+            showWarningToast("Please fill in all required fields correctly.");
+            if (typeof component.showValidation === 'function') {
+              await component.showValidation();
+            }
+            return;
+          }
+        }
+
         // Show loading state
         submitButton.classList.add("loading");
         submitButton.disabled = true;
@@ -650,8 +815,7 @@ const loadPaymentComponent = async (type) => {
         } catch (error) {
           console.error("Payment submission error:", error);
           showErrorToast(error.message || "Payment failed. Please try again.");
-        } finally {
-          // Remove loading state
+          // Remove loading state on error
           submitButton.classList.remove("loading");
           submitButton.disabled = false;
         }
@@ -674,11 +838,13 @@ const loadPaymentComponent = async (type) => {
  * Helper functions
  */
 const hideCheckoutContent = () => {
-  checkoutContent.classList.add("hidden");
+  const element = checkoutContent || document.getElementById("checkout-content");
+  if (element) element.classList.add("hidden");
 };
 
 const showCheckoutContent = () => {
-  checkoutContent.classList.remove("hidden");
+  const element = checkoutContent || document.getElementById("checkout-content");
+  if (element) element.classList.remove("hidden");
 };
 
 const resetCheckoutState = () => {
@@ -686,21 +852,27 @@ const resetCheckoutState = () => {
   clearPaymentMethods();
   methodsStore.clear();
   savedMethodsStore.clear();
-  btnReset.style.display = "none";
-  btnCartSummary.style.display = "none";
+
+  // Disable cart actions in dropdown
+  const cartSummaryBtn = document.getElementById("menuCartSummary");
+  const resetBtn = document.getElementById("menuReset");
+  if (cartSummaryBtn) cartSummaryBtn.disabled = true;
+  if (resetBtn) resetBtn.disabled = true;
+
   selectedMethod = null;
   enabler = null;
   currentCartId = null;
   currentCart = null;
 
   // Clear cart ID input
-  document.getElementById("cartId").value = "";
+  const cartIdInput = document.getElementById("cartId");
+  if (cartIdInput) cartIdInput.value = "";
 };
 
 /**
- * Make handleSuccessClose global for onclick handler in HTML
+ * Handle success modal close
  */
-window.handleSuccessClose = () => {
+const handleSuccessClose = () => {
   const modal = document.getElementById("successModal");
   modal.classList.remove("show");
   modal.style.display = "none";
@@ -714,9 +886,9 @@ window.handleSuccessClose = () => {
 };
 
 /**
- * Make handleErrorClose global for onclick handler in HTML
+ * Handle error modal close
  */
-window.handleErrorClose = () => {
+const handleErrorClose = () => {
   const modal = document.getElementById("errorModal");
   modal.classList.remove("show");
   modal.style.display = "none";
@@ -726,15 +898,31 @@ window.handleErrorClose = () => {
 };
 
 /**
- * Export API functions for use in other modules
+ * Export functions for use in other modules and HTML onclick handlers
  */
-window.commercetoolsAPI = {
-  getCustomerById,
-};
+export { getCustomerById, handleSuccessClose, handleErrorClose };
+
+// Make functions available globally for HTML onclick handlers
+if (typeof window !== 'undefined') {
+  window.handleSuccessClose = handleSuccessClose;
+  window.handleErrorClose = handleErrorClose;
+}
 
 // Initialize when DOM is ready
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', init);
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", async () => {
+    // Check if returning from payment redirect first
+    if (await checkPaymentRedirectReturn()) {
+      return; // Don't initialize checkout if handling redirect return
+    }
+    init();
+  });
 } else {
-  init();
+  (async () => {
+    // Check if returning from payment redirect first
+    if (await checkPaymentRedirectReturn()) {
+      return; // Don't initialize checkout if handling redirect return
+    }
+    init();
+  })();
 }

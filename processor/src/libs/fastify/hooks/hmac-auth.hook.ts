@@ -1,8 +1,8 @@
-import { config, getConfig } from '../../../config/config';
+import { getConfig } from '@app/config/config';
 import { FastifyRequest } from 'fastify';
 import { ErrorAuthErrorResponse } from '@commercetools/connect-payments-sdk';
 import crypto from 'crypto';
-import { log } from '../../logger';
+import { log } from '@lib/logger';
 
 export class HmacAuthHook {
   public authenticate() {
@@ -11,7 +11,7 @@ export class HmacAuthHook {
       const rawBody = request.rawBody || '';
       if (!this.verifyHmacSignature(rawBody, signature)) {
         throw new ErrorAuthErrorResponse('HMAC is not valid');
-      }else{
+      } else {
         log.info('HMAC is valid');
       }
     };

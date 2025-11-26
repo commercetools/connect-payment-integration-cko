@@ -2,7 +2,7 @@ import { Cart, Order } from '@commercetools/connect-payments-sdk';
 
 import { Value } from '@sinclair/typebox/value';
 import jsonata from 'jsonata';
-import { getCkoConfigKeyFromContext } from '../libs/fastify/context/context';
+import { getCkoConfigKeyFromContext } from '@lib/fastify/context/context';
 import { AppConfig, AppConfigSchema, CkoConfig } from './types/config.type';
 
 /**
@@ -106,8 +106,10 @@ export const getConfig = () => {
     getEnableThreeDS,
     getChannelKey,
     isStoredPaymentMethodsEnabled,
-    getStoredPaymentMethodsPaymentInterface,
-    getStoredPaymentMethodsInterfaceAccount,
+    getPaymentInterface,
+    getInterfaceAccount,
+    isSaveInterfaceInteractions,
+    isSavePaymentMethodAdditionalDetails,
     hasMultiChannelConfig,
   };
 };
@@ -281,35 +283,69 @@ function isStoredPaymentMethodsEnabled(): boolean {
 }
 
 /**
- * Get stored payment methods payment interface for current channel
- * @returns Payment interface for stored payment methods
+ * Get payment interface  for current channel
+ * @returns Payment interface
  */
-function getStoredPaymentMethodsPaymentInterface(): string {
+function getPaymentInterface(): string {
   const key = getCkoConfigKeyFromContext();
   const cko = config.ckoConfig;
 
   if (!key) {
-    return cko.default.storedPaymentMethodsPaymentInterface || 'checkout-cko';
+    return cko.default.paymentInterface || 'checkout-cko';
   }
 
   const channel = cko.channels?.find((c) => c.key === key);
-  return channel?.storedPaymentMethodsPaymentInterface || 'checkout-cko';
+  return channel?.paymentInterface || 'checkout-cko';
 }
 
 /**
- * Get stored payment methods interface account for current channel
- * @returns Interface account for stored payment methods, or undefined if not set
+ * Get interface account for current channel
+ * @returns Interface account, or undefined if not set
  */
-function getStoredPaymentMethodsInterfaceAccount(): string | undefined {
+function getInterfaceAccount(): string | undefined {
   const key = getCkoConfigKeyFromContext();
   const cko = config.ckoConfig;
 
   if (!key) {
-    return cko.default.storedPaymentMethodsInterfaceAccount;
+    return cko.default.interfaceAccount;
   }
 
   const channel = cko.channels?.find((c) => c.key === key);
-  return channel?.storedPaymentMethodsInterfaceAccount || getChannelId();
+  return channel?.interfaceAccount || getChannelId();
+}
+
+/**
+ * Check if interface interactions should be saved for current channel
+ *
+ * @returns true if interface interactions should be saved
+ */
+function isSaveInterfaceInteractions(): boolean {
+  const key = getCkoConfigKeyFromContext();
+  const cko = config.ckoConfig;
+
+  if (!key) {
+    return cko.default.saveInterfaceInteractions ?? true;
+  }
+
+  const channel = cko.channels?.find((c) => c.key === key);
+  return channel?.saveInterfaceInteractions ?? cko.default.saveInterfaceInteractions ?? true;
+}
+
+/**
+ * Check if additional payment method details should be saved for current channel
+ *
+ * @returns true if additional payment method details should be saved
+ */
+function isSavePaymentMethodAdditionalDetails(): boolean {
+  const key = getCkoConfigKeyFromContext();
+  const cko = config.ckoConfig;
+
+  if (!key) {
+    return cko.default.savePaymentMethodAdditionalDetails ?? true;
+  }
+
+  const channel = cko.channels?.find((c) => c.key === key);
+  return channel?.savePaymentMethodAdditionalDetails ?? cko.default.savePaymentMethodAdditionalDetails ?? true;
 }
 
 /**

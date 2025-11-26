@@ -1,4 +1,4 @@
-import { CkoReversePaymentRequest } from '../../clients/types/payment.type';
+import { CkoReversePaymentRequest } from '@app/clients/types/payment.type';
 import { ReversePaymentRequest } from '../types/operation.type';
 
 export class ReversePaymentConverter {

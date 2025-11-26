@@ -1,11 +1,12 @@
 import { PaymentMethod } from '@commercetools/connect-payments-sdk';
-import { CkoInstrument } from '../../clients/types/instrument.type';
+import { CkoInstrument } from '@app/clients/types/instrument.type';
 import {
   StoredPaymentMethod,
   StoredPaymentMethodDisplayOptions,
   StoredPaymentMethodsResponseDTO,
-} from '../../dtos/stored-payment-methods.dto';
-import { log } from '../../libs/logger';
+} from '@app/dtos/stored-payment-methods.dto';
+import { log } from '@lib/logger';
+import { convertCardBrand } from './helper.converter';
 
 export class GetStoredPaymentMethodsConverter {
   public convert(opts: {
@@ -50,9 +51,6 @@ export class GetStoredPaymentMethodsConverter {
       return null;
     }
 
-    console.log('@@CT Payment Method found:', ctPaymentMethod.id, ctPaymentMethod.token?.value);
-    console.log('@@CKO Instrument found:', ckoInstrument.id);
-
     return {
       id: ctPaymentMethod.id,
       createdAt: ctPaymentMethod.createdAt,
@@ -66,8 +64,7 @@ export class GetStoredPaymentMethodsConverter {
     if (ckoInstrument.type === 'card') {
       return {
         brand: {
-          //TODO: map to a CT value
-          key: ckoInstrument.scheme || '',
+          key: convertCardBrand(ckoInstrument.scheme),
         },
         endDigits: ckoInstrument.last4 || '',
         expiryMonth: ckoInstrument.expiryMonth as number,

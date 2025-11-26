@@ -1,4 +1,4 @@
-import { config } from '../../config/config';
+import { config } from '@app/config/config';
 import { ApiResources } from '../types/api.type';
 import {
   CkoCapturePaymentRequest,

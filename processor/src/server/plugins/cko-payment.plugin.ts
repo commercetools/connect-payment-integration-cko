@@ -1,8 +1,8 @@
 import { FastifyInstance } from 'fastify';
-import { paymentSDK } from '../../payment-sdk';
-import { notificationRoutes, paymentRoutes } from '../../routes/cko-payment.route';
+import { paymentSDK } from '@app/payment-sdk';
+import { notificationRoutes, paymentRoutes } from '@app/routes/cko-payment.route';
+import { storedPaymentMethodRoutes } from '@app/routes/stored-payment-method.route';
 import { app } from '../app';
-import { storedPaymentMethodRoutes } from '../../routes/stored-payment-method.route';
 
 export default async function (server: FastifyInstance) {
   await server.register(paymentRoutes, {

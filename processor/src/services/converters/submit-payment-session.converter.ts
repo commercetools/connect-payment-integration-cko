@@ -1,8 +1,8 @@
 import { Payment } from '@commercetools/connect-payments-sdk';
-import { SubmitPaymentSessionRequest, SubmitPaymentSessionResponse } from '../../clients/types/payment-session.type';
+import { SubmitPaymentSessionRequest, SubmitPaymentSessionResponse } from '@app/clients/types/payment-session.type';
 
-import { SubmitPaymentSessionRequestDTO, SubmitPaymentSessionResponseDTO } from '../../dtos/cko-payment.dto';
-import { getConfig } from '../../config/config';
+import { SubmitPaymentSessionRequestDTO, SubmitPaymentSessionResponseDTO } from '@app/dtos/cko-payment.dto';
+import { getConfig } from '@app/config/config';
 
 export class SubmitPaymentSessionConverter {
   public convertRequest(opts: { requestData: SubmitPaymentSessionRequestDTO }): SubmitPaymentSessionRequest {

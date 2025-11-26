@@ -29,6 +29,7 @@ export class GooglePay extends BaseComponent {
 
   init(): void {
     this.component = this.ckoWebComponents.create("googlepay", {});
+    this.component["onPayButtonClick"] = this.componentOptions.onPayButtonClick;
   }
 
   async mount(selector: string) {
@@ -47,8 +48,8 @@ export class GooglePay extends BaseComponent {
 
   async showValidation() {}
 
-  async isValid() {
-    return true;
+  async isValid(): Promise<boolean> {
+    return this.component.isValid();
   }
 
   async getState() {

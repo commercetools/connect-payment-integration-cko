@@ -8,12 +8,12 @@ import {
   PaymentSessionResponseDTO,
   SubmitPaymentSessionRequestDTO,
   SubmitPaymentSessionResponseDTO,
-} from '../dtos/cko-payment.dto';
-import { CkoPaymentService } from '../services/cko-payment.service';
-import { HmacAuthHook } from '../libs/fastify/hooks/hmac-auth.hook';
-import { rawBodyPlugin } from '../libs/fastify/hooks/raw-body.hook';
-import { CkoWebhookEvent } from '../clients/types/webhook.type';
-import { CkoConfigHook } from '../libs/fastify/hooks/cko-config.hook';
+} from '@app/dtos/cko-payment.dto';
+import { CkoPaymentService } from '@app/services/cko-payment.service';
+import { HmacAuthHook } from '@lib/fastify/hooks/hmac-auth.hook';
+import { rawBodyPlugin } from '@lib/fastify/hooks/raw-body.hook';
+import { CkoWebhookEvent } from '@app/clients/types/webhook.type';
+import { CkoConfigHook } from '@lib/fastify/hooks/cko-config.hook';
 
 type PaymentRoutesOptions = {
   paymentService: CkoPaymentService;
@@ -34,7 +34,7 @@ export const paymentRoutes = async (fastify: FastifyInstance, opts: FastifyPlugi
       preHandler: [opts.sessionHeaderAuthHook.authenticate(), opts.ckoConfigHook.setConfigKey()],
     },
     async (request, reply) => {
-      const resp = await opts.paymentService.createSession({ data: request.body });
+      const resp = await opts.paymentService.createPaymentSession({ data: request.body });
 
       return reply.status(200).send(resp);
     },
@@ -95,8 +95,6 @@ export const notificationRoutes = async (
     },
     async (request, reply) => {
       const event = request.body;
-
-      console.log('Received webhook event:', JSON.stringify(event, null, 2));
 
       await opts.paymentService.processNotification({
         event,

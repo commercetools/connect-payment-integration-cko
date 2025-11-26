@@ -35,15 +35,17 @@ export const CkoChannelConfigSchema = Type.Object({
   /** Enable stored payment methods support */
   storedPaymentMethodsEnabled: Type.Optional(Type.Boolean({ default: true })),
 
-  /** Payment interface for stored payment methods  */
-  storedPaymentMethodsPaymentInterface: Type.Optional(
-    Type.String({default: 'checkout-cko'}),
-  ),
+  /** Payment interface */
+  paymentInterface: Type.Optional(Type.String({ default: 'checkout-cko' })),
 
-  /** Interface account for stored payment methods ie. US-store. If not provided, the channel ID will be used */
-  storedPaymentMethodsInterfaceAccount: Type.Optional(
-    Type.String(),
-  ),
+  /** Interface account ie. US-store. If not provided, the channel ID will be used */
+  interfaceAccount: Type.Optional(Type.String()),
+
+  /** Save interface interactions for operations related to this channel */
+  saveInterfaceInteractions: Type.Optional(Type.Boolean({ default: true })),
+
+  /** Save additional payment method details (e.g., card brand, last4) */
+  savePaymentMethodAdditionalDetails: Type.Optional(Type.Boolean({ default: true })),
 });
 
 export const CkoChannelsConfigSchema = Type.Array(CkoChannelConfigSchema);

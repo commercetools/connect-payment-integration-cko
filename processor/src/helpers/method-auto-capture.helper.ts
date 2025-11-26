@@ -1,4 +1,4 @@
-import { paymentMethodConfig } from '../config/payment-method.config';
+import { paymentMethodConfig } from '@app/config/payment-method.config';
 import { convertPaymentMethodFromCkoFormat } from './method-name.helper';
 
 export const isMethodAutoCaptured = (paymentMethod: string): boolean => {

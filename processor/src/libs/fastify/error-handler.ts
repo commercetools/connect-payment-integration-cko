@@ -1,7 +1,6 @@
 import { FastifyError, type FastifyReply, type FastifyRequest } from 'fastify';
 
 import { FastifySchemaValidationError } from 'fastify/types/schema';
-import { log } from '../logger';
 import {
   ErrorAuthErrorResponse,
   ErrorGeneral,
@@ -12,6 +11,7 @@ import {
   MultiErrorx,
 } from '@commercetools/connect-payments-sdk';
 import { TAuthErrorResponse, TErrorObject, TErrorResponse } from './dtos/error.dto';
+import { log } from '@lib/logger';
 
 function isFastifyValidationError(error: Error): error is FastifyError {
   return (error as unknown as FastifyError).validation != undefined;

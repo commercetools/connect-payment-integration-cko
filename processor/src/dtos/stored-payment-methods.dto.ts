@@ -33,7 +33,19 @@ export const ProcessStoredPaymentResponseSchema = Type.Object({
   status: Type.String(),
   type: Type.Optional(Type.String()),
   paymentReference: Type.String(),
+  action: Type.Optional(
+    Type.Object({
+      type: Type.Optional(Type.String()),
+      url: Type.String(),
+    }),
+  ),
 });
+
+export type ConfirmStoredPaymentResponseDTO = {
+  paymentReference: string;
+  merchantReturnUrl: string;
+};
+
 
 export type StoredPaymentMethodDisplayOptions = Static<typeof StoredPaymentMethodDisplayOptionsSchema>;
 export type StoredPaymentMethod = Static<typeof StoredPaymentMethodSchema>;

@@ -27,7 +27,6 @@ export class Card extends BaseComponent {
   constructor(baseOptions: BaseOptions, componentOptions: ComponentOptions) {
     super(PaymentMethod.card, baseOptions, componentOptions);
     this.showPayButton = componentOptions?.showPayButton ?? false;
-    this.setStorePaymentDetails = baseOptions.setStorePaymentDetails;
   }
 
   init(): void {
@@ -51,8 +50,8 @@ export class Card extends BaseComponent {
   }
   async showValidation() {}
 
-  async isValid() {
-    return true;
+  async isValid(): Promise<boolean> {
+    return this.component.isValid();
   }
 
   async getState() {

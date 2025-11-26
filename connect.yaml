@@ -35,7 +35,24 @@ deployAs:
           description: JWT Issuer for jwt validation (example - https://mc-api.europe-west1.gcp.commercetools.com)
           required: true
           default: https://mc-api.europe-west1.gcp.commercetools.com
+        - key: HEALTH_CHECK_TIMEOUT
+          description: Health check timeout in milliseconds
+          required: false
+          default: '5000'
+        - key: LOGGER_LEVEL
+          description: Log level (trace, debug, info, warn, error, fatal)
+          required: false
+          default: 'info'
+        - key: MERCHANT_RETURN_URL
+          description: Post-payment redirect URL to return customers to merchant site
+          required: true
+        - key: CKO_ENVIRONMENT
+          description: Checkout.com environment (sandbox or production)
+          required: true
       securedConfiguration:
         - key: CTP_CLIENT_SECRET
           description: commercetools client secret
+          required: true
+        - key: CKO_CONFIG
+          description: JSON configuration for Checkout.com channels including API keys, secrets, and channel settings
           required: true

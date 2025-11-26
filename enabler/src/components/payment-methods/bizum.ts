@@ -51,8 +51,8 @@ export class Bizum extends BaseComponent {
 
   async showValidation() {}
 
-  async isValid() {
-    return true;
+  async isValid(): Promise<boolean> {
+    return this.component.isValid();
   }
 
   async getState() {

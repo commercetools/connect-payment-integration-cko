@@ -1,6 +1,6 @@
-import { getConfig } from '../../config/config';
-import { CkoApiError, CkoApiErrorData } from '../../errors/cko-api.error';
-import { log } from '../../libs/logger';
+import { getConfig } from '@app/config/config';
+import { CkoApiError } from '@app/errors/cko-api.error';
+import { log } from '@lib/logger';
 import { ApiBasePath, ApiRequestConfig, ApiResources } from '../types/api.type';
 
 export abstract class CkoBaseApi {
@@ -16,6 +16,8 @@ export abstract class CkoBaseApi {
         },
         ...(options.data ? { body: JSON.stringify(options.data) } : {}),
       });
+
+      log.info(`Called cko API ${options.method} ${options.url} - Status: ${res.status}`);
     } catch (e: unknown) {
       log.error('Error calling CKO API', {
         err: e,

@@ -11,4 +11,4 @@ services:
       - -y
       - start
     ports:
-      - 9000:9000
+      - 9002:9000

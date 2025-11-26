@@ -1,77 +1,59 @@
 import {
   statusHandler,
   healthCheckCommercetoolsPermissions,
-  ErrorInvalidOperation,
   Errorx,
-  PaymentMethod,
-  CommercetoolsPredefinedTypes,
+  CommercetoolsCartService,
+  CommercetoolsPaymentService,
+  CommercetoolsPaymentMethodService,
+  Cart,
+  Payment,
 } from '@commercetools/connect-payments-sdk';
-import {
-  CancelPaymentRequest,
-  CapturePaymentRequest,
-  ConfigResponse,
-  PaymentProviderModificationResponse,
-  RefundPaymentRequest,
-  ReversePaymentRequest,
-  StatusResponse,
-} from './types/operation.type';
+import { ConfigResponse, StatusResponse } from './types/operation.type';
 
-import { SupportedPaymentComponentsSchemaDTO } from '../dtos/operations/payment-componets.dto';
-import { PaymentModificationStatus } from '../dtos/operations/payment-intents.dto';
+import { SupportedPaymentComponentsSchemaDTO } from '@app/dtos/operations/payment-componets.dto';
 import packageJSON from '../../package.json';
 
-import { AbstractPaymentService } from './abstract-payment.service';
-import { config, getConfig } from '../config/config';
-import { appLogger, paymentSDK } from '../payment-sdk';
+import { getConfig } from '@app/config/config';
+import { appLogger, paymentSDK } from '@app/payment-sdk';
 import {
   PaymentConfirmResponseDTO,
   PaymentSessionRequestDTO,
   PaymentSessionResponseDTO,
   SubmitPaymentSessionRequestDTO,
   SubmitPaymentSessionResponseDTO,
-} from '../dtos/cko-payment.dto';
-import {
-  getCartIdFromContext,
-  getMerchantReturnUrlFromContext,
-  getPaymentInterfaceFromContext,
-} from '../libs/fastify/context/context';
-import { CkoPaymentStatus } from '../clients/types/payment-session.type';
-import { getCkoApiClient } from '../clients/cko.client';
+} from '@app/dtos/cko-payment.dto';
+import { getCartIdFromContext, getCheckoutTransactionItemIdFromContext } from '@lib/fastify/context/context';
+import { getCkoApiClient } from '@app/clients/cko.client';
 import { CreatePaymentSessionConverter } from './converters/create-payment-session.converter';
 import { PaymentComponentsConverter } from './converters/payment-components.converter';
 import { SubmitPaymentSessionConverter } from './converters/submit-payment-session.converter';
-import { log } from '../libs/logger';
-import { ReversePaymentConverter } from './converters/reverse-payment.converter';
-import { CapturePaymentConverter } from './converters/capture-payment.converter';
-import { VoidPaymentConverter } from './converters/void-payment.converter';
-import { RefundPaymentConverter } from './converters/refund-payment.converter';
-import { CkoWebhookEvent } from '../clients/types/webhook.type';
+import { log } from '@lib/logger';
+import { CkoWebhookEvent } from '@app/clients/types/webhook.type';
 import { NotificationConverter } from './converters/notification.converter';
-import { UnsupportedNotificationError } from '../errors/cko-api.error';
-import { CkoPaymentServiceOptions } from './types/cko-payment.type';
+import { UnsupportedNotificationError } from '@app/errors/cko-api.error';
+import { CkoPaymentServiceOptions, NotificationUpdatePayment } from './types/cko-payment.type';
 import { randomUUID } from 'crypto';
-import { isMethodAutoCaptured } from '../helpers/method-auto-capture.helper';
-import { convertPaymentMethodFromCkoFormat } from '../helpers/method-name.helper';
+import { isMethodAutoCaptured } from '@app/helpers/method-auto-capture.helper';
+import { convertPaymentMethodFromCkoFormat } from '@app/helpers/method-name.helper';
+import { buildRedirectMerchantUrl, populateInterfaceInteraction } from './helper.service';
+import { CkoPaymentSessionStatus } from '@app/clients/types/payment-session.type';
 
-export class CkoPaymentService extends AbstractPaymentService {
-  private paymentComponentsConverter: PaymentComponentsConverter;
-  private createPaymentSessionConverter: CreatePaymentSessionConverter;
-  private submitPaymentSessionConverter: SubmitPaymentSessionConverter;
-  private voidPaymentConverter: VoidPaymentConverter;
-  private reversePaymentConverter: ReversePaymentConverter;
-  private capturePaymentConverter: CapturePaymentConverter;
-  private refundPaymentConverter: RefundPaymentConverter;
-  private notificationConverter: NotificationConverter;
+export class CkoPaymentService {
+  private readonly ctCartService: CommercetoolsCartService;
+  private readonly ctPaymentService: CommercetoolsPaymentService;
+  private readonly ctPaymentMethodService: CommercetoolsPaymentMethodService;
+  private readonly paymentComponentsConverter: PaymentComponentsConverter;
+  private readonly createPaymentSessionConverter: CreatePaymentSessionConverter;
+  private readonly submitPaymentSessionConverter: SubmitPaymentSessionConverter;
+  private readonly notificationConverter: NotificationConverter;
 
   constructor(opts: CkoPaymentServiceOptions) {
-    super(opts.ctCartService, opts.ctPaymentService, opts.ctOrderService, opts.ctPaymentMethodService);
+    this.ctCartService = opts.ctCartService;
+    this.ctPaymentService = opts.ctPaymentService;
+    this.ctPaymentMethodService = opts.ctPaymentMethodService;
     this.paymentComponentsConverter = new PaymentComponentsConverter();
     this.createPaymentSessionConverter = new CreatePaymentSessionConverter();
     this.submitPaymentSessionConverter = new SubmitPaymentSessionConverter();
-    this.voidPaymentConverter = new VoidPaymentConverter();
-    this.reversePaymentConverter = new ReversePaymentConverter();
-    this.capturePaymentConverter = new CapturePaymentConverter();
-    this.refundPaymentConverter = new RefundPaymentConverter();
     this.notificationConverter = new NotificationConverter();
   }
 
@@ -110,6 +92,7 @@ export class CkoPaymentService extends AbstractPaymentService {
             'manage_payments',
             'view_sessions',
             'view_api_clients',
+            'view_customers',
             'manage_orders',
             'introspect_oauth_tokens',
             'manage_checkout_payment_intents',
@@ -164,347 +147,98 @@ export class CkoPaymentService extends AbstractPaymentService {
   }
 
   /**
-   * Capture payment
+   * Creates a CKO payment session
    *
-   * @remarks
-   * Implementation to provide the mocking data for payment capture in external PSPs
-   *
-   * @param request - contains the amount and {@link https://docs.commercetools.com/api/projects/payments | Payment } defined in composable commerce
-   * @returns Promise with mocking data containing operation status and PSP reference
+   * @param opts - The payment session request data
+   * @returns The payment session response data
    */
-  public async capturePayment(request: CapturePaymentRequest): Promise<PaymentProviderModificationResponse> {
-    log.info(`Processing payment modification.`, {
-      paymentId: request.payment.id,
-      action: 'capturePayment',
-    });
+  public async createPaymentSession(opts: { data: PaymentSessionRequestDTO }): Promise<PaymentSessionResponseDTO> {
+    const cartId = getCartIdFromContext();
+    log.info('Creating payment session', { cartId });
+    const ctCart = await this.ctCartService.getCart({ id: cartId });
 
-    const ckoRequestData = this.capturePaymentConverter.convertRequest({ requestData: request });
-    const ckoPaymentId = request.payment.interfaceId as string;
+    // Create payment with customer info
+    const ctPayment = await this.createPaymentForCart(ctCart);
 
-    let isSuccess = true;
-    let operationId;
-    try {
-      const response = await getCkoApiClient().payments.capturePayment(ckoPaymentId, ckoRequestData);
-      operationId = response.action_id;
-    } catch (error) {
-      log.error(`Error capturing payment: ${error}`, {
-        paymentId: request.payment.id,
-        action: 'capturePayment',
-        result: 'Failure',
-      });
-      isSuccess = false;
-    }
-
-    const updatePayment = await this.ctPaymentService.updatePayment({
-      id: request.payment.id,
-      transaction: {
-        type: 'Charge',
-        amount: request.amount,
-        interfaceId: operationId,
-        state: isSuccess ? 'Success' : 'Failure',
-      },
-    });
-
-    log.info(`Payment modification completed.`, {
-      payment: {
-        id: updatePayment.id,
-        version: updatePayment.version,
-      },
-      interactionId: operationId || 'error',
-      action: 'capturePayment',
-      result: isSuccess ? 'Success' : 'Failure',
-    });
-
-    return {
-      outcome: isSuccess ? PaymentModificationStatus.APPROVED : PaymentModificationStatus.REJECTED,
-      pspReference: request.payment.interfaceId as string,
-    };
-  }
-
-  /**
-   * Cancel payment
-   *
-   * @remarks
-   * Implementation to provide the mocking data for payment cancel in external PSPs
-   *
-   * @param request - contains {@link https://docs.commercetools.com/api/projects/payments | Payment } defined in composable commerce
-   * @returns Promise with mocking data containing operation status and PSP reference
-   */
-  public async cancelPayment(request: CancelPaymentRequest): Promise<PaymentProviderModificationResponse> {
-    log.info(`Processing payment modification.`, {
-      paymentId: request.payment.id,
-      action: 'cancelPayment',
-    });
-
-    const ckoRequestData = this.voidPaymentConverter.convertRequest({ requestData: request });
-    const ckoPaymentId = request.payment.interfaceId as string;
-
-    let isSuccess = true;
-    let operationId;
-    try {
-      const response = await getCkoApiClient().payments.voidPayment(ckoPaymentId, ckoRequestData);
-      operationId = response.action_id;
-    } catch (error) {
-      log.error(`Error cancelling payment: ${error}`, {
-        paymentId: request.payment.id,
-        action: 'cancelPayment',
-        result: 'Failure',
-      });
-      isSuccess = false;
-    }
-
-    const updatePayment = await this.ctPaymentService.updatePayment({
-      id: request.payment.id,
-      transaction: {
-        type: 'CancelAuthorization',
-        amount: request.payment.amountPlanned,
-        interfaceId: operationId,
-        state: isSuccess ? 'Success' : 'Failure',
-      },
-    });
-
-    log.info(`Payment modification completed.`, {
-      payment: {
-        id: updatePayment.id,
-        version: updatePayment.version,
-      },
-      interactionId: operationId || 'error',
-      action: 'cancelPayment',
-      result: isSuccess ? 'Success' : 'Failure',
-    });
-
-    return {
-      outcome: isSuccess ? PaymentModificationStatus.APPROVED : PaymentModificationStatus.REJECTED,
-      pspReference: request.payment.interfaceId as string,
-    };
-  }
-
-  /**
-   * Refund payment
-   *
-   * @remarks
-   * Implementation to provide the mocking data for payment refund in external PSPs
-   *
-   * @param request - contains amount and {@link https://docs.commercetools.com/api/projects/payments | Payment } defined in composable commerce
-   * @returns Promise with mocking data containing operation status and PSP reference
-   */
-  public async refundPayment(request: RefundPaymentRequest): Promise<PaymentProviderModificationResponse> {
-    log.info(`Processing payment modification.`, {
-      paymentId: request.payment.id,
-      action: 'refundPayment',
-    });
-
-    const ckoRequestData = this.refundPaymentConverter.convertRequest({ requestData: request });
-    const ckoPaymentId = request.payment.interfaceId as string;
-
-    let isSuccess = true;
-    let operationId;
-    try {
-      const response = await getCkoApiClient().payments.refundPayment(ckoPaymentId, ckoRequestData);
-      operationId = response.action_id;
-    } catch (error) {
-      log.error(`Error refunding payment: ${error}`, {
-        paymentId: request.payment.id,
-        action: 'refundPayment',
-        result: 'Failure',
-      });
-      isSuccess = false;
-    }
-
-    const updatePayment = await this.ctPaymentService.updatePayment({
-      id: request.payment.id,
-      transaction: {
-        type: 'Refund',
-        amount: request.amount,
-        interfaceId: operationId,
-        state: isSuccess ? 'Success' : 'Failure',
-      },
-    });
-
-    log.info(`Payment modification completed.`, {
-      payment: {
-        id: updatePayment.id,
-        version: updatePayment.version,
-      },
-      interactionId: operationId || 'error',
-      action: 'refundPayment',
-      result: isSuccess ? 'Success' : 'Failure',
-    });
-
-    return {
-      outcome: isSuccess ? PaymentModificationStatus.APPROVED : PaymentModificationStatus.REJECTED,
-      pspReference: request.payment.interfaceId as string,
-    };
-  }
-
-  /**
-   * Reverse payment
-   *
-   * @remarks
-   * Abstract method to execute payment reversals in support of automated reversals to be triggered by checkout api. The actual invocation to PSPs should be implemented in subclasses
-   *
-   * @param request
-   * @returns Promise with outcome containing operation status and PSP reference
-   */
-  public async reversePayment(request: ReversePaymentRequest): Promise<PaymentProviderModificationResponse> {
-    log.info(`Processing payment modification.`, {
-      paymentId: request.payment.id,
-      action: 'reversePayment',
-    });
-
-    const hasCharge = this.ctPaymentService.hasTransactionInState({
-      payment: request.payment,
-      transactionType: 'Charge',
-      states: ['Pending', 'Success'],
-    });
-
-    const ckoRequestData = this.reversePaymentConverter.convertRequest({ requestData: request });
-    const ckoPaymentId = request.payment.interfaceId as string;
-
-    let isSuccess = true;
-    let operationId;
-    try {
-      const response = await getCkoApiClient().payments.reversePayment(ckoPaymentId, ckoRequestData);
-      operationId = response.action_id;
-    } catch (error) {
-      log.error(`Error reversing payment: ${error}`, {
-        paymentId: request.payment.id,
-        action: 'reversePayment',
-        result: 'Failure',
-      });
-      isSuccess = false;
-    }
-
-    const updatePayment = await this.ctPaymentService.updatePayment({
-      id: request.payment.id,
-      transaction: {
-        type: hasCharge ? 'Refund' : 'CancelAuthorization',
-        amount: request.payment.amountPlanned,
-        interfaceId: operationId,
-        state: isSuccess ? 'Success' : 'Failure',
-      },
-    });
-
-    log.info(`Payment modification completed.`, {
-      payment: {
-        id: updatePayment.id,
-        version: updatePayment.version,
-      },
-      interactionId: operationId || 'error',
-      action: 'reversePayment',
-      result: isSuccess ? 'Success' : 'Failure',
-    });
-
-    return {
-      outcome: isSuccess ? PaymentModificationStatus.APPROVED : PaymentModificationStatus.REJECTED,
-      pspReference: request.payment.interfaceId as string,
-    };
-  }
-
-  async createSession(opts: { data: PaymentSessionRequestDTO }): Promise<PaymentSessionResponseDTO> {
-    const ctCart = await this.ctCartService.getCart({
-      id: getCartIdFromContext(),
-    });
-
-    const amountPlanned = await this.ctCartService.getPlannedPaymentAmount({ cart: ctCart });
-    const ctPayment = await this.ctPaymentService.createPayment({
-      amountPlanned,
-      paymentMethodInfo: {
-        paymentInterface: 'checkout-cko',
-        interfaceAccount: getConfig().getChannelId(),
-      },
-      checkoutTransactionItemId: getPaymentInterfaceFromContext(),
-      ...(ctCart.customerId && {
-        customer: {
-          typeId: 'customer',
-          id: ctCart.customerId,
-        },
-      }),
-      ...(!ctCart.customerId &&
-        ctCart.anonymousId && {
-          anonymousId: ctCart.anonymousId,
-        }),
-    });
-
+    // Link payment to cart
     const updatedCart = await this.ctCartService.addPayment({
-      resource: {
-        id: ctCart.id,
-        version: ctCart.version,
-      },
+      resource: { id: ctCart.id, version: ctCart.version },
       paymentId: ctPayment.id,
     });
 
-    const ckoRequestData = this.createPaymentSessionConverter.convertRequest({
+    // Create and send CKO payment session request
+    const ckoRequest = this.createPaymentSessionConverter.convertRequest({
       data: opts.data,
       cart: updatedCart,
       payment: ctPayment,
     });
 
-    console.log('Creating payment session with data:', JSON.stringify(ckoRequestData, null, 2));
-
     try {
-      const res = await getCkoApiClient().paymentSessions.createPaymentSession(ckoRequestData);
-
-      console.log('Payment session created with response:', JSON.stringify(res, null, 2));
+      const ckoResponse = await getCkoApiClient().paymentSessions.createPaymentSession(ckoRequest);
+      const interfaceInteraction = populateInterfaceInteraction({
+        interactionId: randomUUID(),
+        type: 'CreatePaymentSession',
+        createdAt: new Date().toISOString(),
+        request: JSON.stringify(ckoRequest),
+        response: JSON.stringify(ckoResponse),
+      });
 
       await this.ctPaymentService.updatePayment({
         id: ctPayment.id,
-        pspInteractions: [
-          {
-            type: {
-              typeId: 'type',
-              key: 'ctcheckout-payment-interface-interaction-type',
-            },
-            fields: {
-              interactionId: randomUUID(),
-              type: 'CreatePaymentSession',
-              createdAt: new Date().toISOString(),
-              request: JSON.stringify(ckoRequestData),
-              response: JSON.stringify(res),
-            },
-          },
-        ],
+        pspInteractions: interfaceInteraction,
       });
 
-      return this.createPaymentSessionConverter.convertResponse({ responseData: res, payment: ctPayment });
-    } catch (e) {
-      console.error('Error creating payment session:', e);
-      throw e;
+      log.info('Payment session created successfully', {
+        paymentId: ctPayment.id,
+        sessionId: ckoResponse.id,
+      });
+
+      return this.createPaymentSessionConverter.convertResponse({ responseData: ckoResponse, payment: ctPayment });
+    } catch (err) {
+      log.error('Error creating payment session', { err, cartId: ctCart.id, paymentId: ctPayment.id });
+      throw err;
     }
   }
 
-  async submitPaymentSession(
+  /**
+   * Submits a CKO payment session
+   *
+   * @param id - The payment session ID
+   * @param opts - The submit payment session request data
+   * @returns The submit payment session response data
+   */
+  public async submitPaymentSession(
     id: string,
     opts: { data: SubmitPaymentSessionRequestDTO },
   ): Promise<SubmitPaymentSessionResponseDTO> {
+    log.info('Submitting payment session', { sessionId: id, paymentReference: opts.data.paymentReference });
+    const payment = await this.ctPaymentService.getPayment({
+      id: opts.data.paymentReference,
+    });
+
+    const ckoRequest = this.submitPaymentSessionConverter.convertRequest({
+      requestData: opts.data,
+    });
+
     try {
-      const payment = await this.ctPaymentService.getPayment({
-        id: opts.data.paymentReference,
-      });
+      const ckoResponse = await getCkoApiClient().paymentSessions.submitPaymentSession(id, ckoRequest);
 
-      const ckoRequestData = this.submitPaymentSessionConverter.convertRequest({
-        requestData: opts.data,
+      const response = this.submitPaymentSessionConverter.convertResponse({ responseData: ckoResponse, payment });
+      const transactionType = isMethodAutoCaptured(ckoResponse.type) ? 'Charge' : 'Authorization';
+      const paymentMethodType = convertPaymentMethodFromCkoFormat(ckoResponse.type);
+      const interfaceInteraction = populateInterfaceInteraction({
+        interactionId: randomUUID(),
+        type: 'SubmitPaymentSession',
+        createdAt: new Date().toISOString(),
+        request: JSON.stringify(ckoRequest),
+        response: JSON.stringify(ckoResponse),
       });
-      const res = await getCkoApiClient().paymentSessions.submitPaymentSession(id, ckoRequestData);
-
-      const response = this.submitPaymentSessionConverter.convertResponse({ responseData: res, payment });
-      const transactionType = isMethodAutoCaptured(res.type) ? 'Charge' : 'Authorization';
 
       const updatedPayment = await this.ctPaymentService.updatePayment({
         id: payment.id,
         pspReference: response.id,
         paymentMethodInfo: {
-          method: convertPaymentMethodFromCkoFormat(res.type),
-          custom: {
-            type: {
-              typeId: 'type',
-              key: CommercetoolsPredefinedTypes.CardDetailsType.key,
-            },
-            fields: {
-              [CommercetoolsPredefinedTypes.CardDetailsType.fields.storePaymentMethod]:
-                opts.data.storePaymentMethod || false,
-            },
-          },
+          method: paymentMethodType,
         },
         transaction: {
           type: transactionType,
@@ -512,21 +246,7 @@ export class CkoPaymentService extends AbstractPaymentService {
           interfaceId: response.id,
           state: this.convertPaymentStatus(response.status),
         },
-        pspInteractions: [
-          {
-            type: {
-              typeId: 'type',
-              key: 'ctcheckout-payment-interface-interaction-type',
-            },
-            fields: {
-              interactionId: randomUUID(),
-              type: 'SubmitPaymentSession',
-              createdAt: new Date().toISOString(),
-              request: JSON.stringify(ckoRequestData),
-              response: JSON.stringify(res),
-            },
-          },
-        ],
+        pspInteractions: interfaceInteraction,
       });
 
       log.info('Payment session submitted', {
@@ -539,83 +259,100 @@ export class CkoPaymentService extends AbstractPaymentService {
       });
 
       return response;
-    } catch (e) {
-      throw e;
+    } catch (err) {
+      log.error('Error submitting payment session', { err, paymentId: payment.id });
+      throw err;
     }
   }
 
+  /**
+   * Confirms a payment after user completes the payment flow
+   *
+   * @param opts - Payment confirmation data including payment reference, CKO payment ID and success status
+   * @returns Promise with payment reference and merchant return URL
+   */
   public async confirmPayment(opts: {
     paymentReference: string;
     ckoPaymentId: string;
     isSuccess: boolean;
   }): Promise<PaymentConfirmResponseDTO> {
+    log.info('Confirming payment', {
+      paymentReference: opts.paymentReference,
+      ckoPaymentId: opts.ckoPaymentId,
+      isSuccess: opts.isSuccess,
+    });
     const payment = await this.ctPaymentService.getPayment({
       id: opts.paymentReference,
     });
 
-    const ckoPayment = await getCkoApiClient().payments.getPayment(opts.ckoPaymentId);
-    const methodType = ckoPayment.source?.type || 'unknown';
-    const transactionType = isMethodAutoCaptured(methodType) ? 'Charge' : 'Authorization';
+    try {
+      const ckoPayment = await getCkoApiClient().payments.getPayment(opts.ckoPaymentId);
+      const methodType = ckoPayment.source?.type || 'unknown';
+      const transactionType = isMethodAutoCaptured(methodType) ? 'Charge' : 'Authorization';
+      const interfaceInteraction = populateInterfaceInteraction({
+        interactionId: randomUUID(),
+        type: 'ConfirmPaymentSession',
+        createdAt: new Date().toISOString(),
+        request: JSON.stringify({ ckoPaymentId: opts.ckoPaymentId, isSuccess: opts.isSuccess }),
+      });
 
-    const updatedPayment = await this.ctPaymentService.updatePayment({
-      id: opts.paymentReference,
-      transaction: {
-        type: transactionType,
-        amount: payment.amountPlanned,
-        interfaceId: opts.ckoPaymentId,
-        state: opts.isSuccess ? 'Success' : 'Failure',
-      },
-      pspInteractions: [
-        {
-          type: {
-            typeId: 'type',
-            key: 'ctcheckout-payment-interface-interaction-type',
-          },
-          fields: {
-            interactionId: randomUUID(),
-            type: 'ConfirmPaymentSession',
-            createdAt: new Date().toISOString(),
-            request: JSON.stringify({ ckoPaymentId: opts.ckoPaymentId, isSuccess: opts.isSuccess }),
-            response: JSON.stringify({}),
-          },
+      const updatedPayment = await this.ctPaymentService.updatePayment({
+        id: opts.paymentReference,
+        transaction: {
+          type: transactionType,
+          amount: payment.amountPlanned,
+          interfaceId: opts.ckoPaymentId,
+          state: opts.isSuccess ? 'Success' : 'Failure',
         },
-      ],
-    });
+        pspInteractions: interfaceInteraction,
+      });
 
-    log.info(`Payment confirmation processed.`, {
-      payment: {
-        id: updatedPayment.id,
-        version: updatedPayment.version,
-      },
-      interactionId: opts.ckoPaymentId,
-      result: opts.isSuccess ? 'Success' : 'Failure',
-    });
+      log.info(`Payment confirmation processed.`, {
+        payment: {
+          id: updatedPayment.id,
+          version: updatedPayment.version,
+        },
+        interactionId: opts.ckoPaymentId,
+        result: opts.isSuccess ? 'Success' : 'Failure',
+      });
 
-    return {
-      paymentReference: updatedPayment.id,
-      merchantReturnUrl: this.buildRedirectMerchantUrl(updatedPayment.id),
-    };
+      return {
+        paymentReference: updatedPayment.id,
+        merchantReturnUrl: buildRedirectMerchantUrl(updatedPayment.id),
+      };
+    } catch (err) {
+      log.error('Error confirming payment session', { err, paymentId: payment.id });
+      throw err;
+    }
   }
 
+  /**
+   * Processes webhook notifications from Checkout.com
+   *
+   * @remarks
+   * Handles payment status updates from CKO webhooks and optionally stores payment methods
+   * Silently ignores unsupported notifications or when payment is not found
+   *
+   * @param opts - Webhook event data from Checkout.com
+   */
   public async processNotification(opts: { event: CkoWebhookEvent }): Promise<void> {
+    log.info('Processing notification', { notification: JSON.stringify(opts.event) });
     try {
       const updateData = await this.notificationConverter.convert(opts);
-      let storePaymentMethod = false;
-      if (updateData.paymentMethodInfo.custom?.fields) {
-        const payment = await this.ctPaymentService.getPayment({
-          id: updateData.paymentId,
-        });
 
-        storePaymentMethod = payment.paymentMethodInfo?.custom?.fields?.storePaymentMethod || false;
-
-        updateData.paymentMethodInfo.custom.fields.storePaymentMethod = storePaymentMethod;
-      }
+      const interfaceInteraction = populateInterfaceInteraction({
+        interactionId: randomUUID(),
+        type: 'Notification',
+        createdAt: new Date().toISOString(),
+        request: JSON.stringify({ event: opts.event }),
+      });
 
       const updatedPayment = await this.ctPaymentService.updatePayment({
         id: updateData.paymentId,
         ...(updateData.pspReference && { pspReference: updateData.pspReference }),
         ...(updateData.paymentMethodInfo && { paymentMethodInfo: updateData.paymentMethodInfo }),
         transaction: updateData.transaction,
+        pspInteractions: interfaceInteraction,
       });
 
       log.info('Payment updated after processing the notification', {
@@ -626,28 +363,9 @@ export class CkoPaymentService extends AbstractPaymentService {
         transaction: JSON.stringify(updateData.transaction),
       });
 
-      if (storePaymentMethod) {
-        log.info('Storing payment method as per customer request', {
-          paymentId: updatedPayment.id,
-        });
-
-        try {
-          const spm = await this.ctPaymentMethodService.save({
-            customerId: updatedPayment.customer?.id as string,
-            method: updateData.paymentMethodInfo.method!,
-            token: updateData.paymentMethodInfo.token!.value,
-            paymentInterface: 'checkout-cko',
-            interfaceAccount: updateData.paymentMethodInfo.interfaceAccount!,
-          });
-
-          log.info('Stored payment method successfully', {
-            paymentId: updatedPayment.id,
-            storedPaymentMethodId: spm.id,
-          });
-        } catch (e) {
-          log.error('Error storing payment method', { err: e, paymentId: updatedPayment.id });
-        }
-      }
+      // Save payment method if required
+      const storePaymentMethod = await this.shouldStorePaymentMethod(updateData);
+      await this.savePaymentMethod(updatedPayment, storePaymentMethod);
     } catch (e) {
       if (e instanceof UnsupportedNotificationError) {
         log.info('Unsupported notification received', { notification: JSON.stringify(opts.event) });
@@ -662,21 +380,117 @@ export class CkoPaymentService extends AbstractPaymentService {
     }
   }
 
-  private convertPaymentStatus(status: CkoPaymentStatus): string {
-    if (status === CkoPaymentStatus.APPROVED) {
+  /**
+   * Creates a payment in commercetools for the given cart
+   *
+   * @remarks
+   * Automatically associates the payment with the customer or anonymous ID from the cart
+   *
+   * @param cart - The cart to create payment for
+   * @returns Promise with the created payment
+   */
+  private async createPaymentForCart(cart: Cart): Promise<Payment> {
+    const amountPlanned = await this.ctCartService.getPlannedPaymentAmount({ cart });
+
+    const paymentData = {
+      amountPlanned,
+      paymentMethodInfo: {
+        paymentInterface: getConfig().getPaymentInterface(),
+        interfaceAccount: getConfig().getInterfaceAccount(),
+      },
+      checkoutTransactionItemId: getCheckoutTransactionItemIdFromContext(),
+    };
+
+    // Add customer reference if available
+    if (cart.customerId) {
+      return this.ctPaymentService.createPayment({
+        ...paymentData,
+        customer: { typeId: 'customer', id: cart.customerId },
+      });
+    }
+
+    // Add anonymous ID if no customer
+    if (cart.anonymousId) {
+      return this.ctPaymentService.createPayment({
+        ...paymentData,
+        anonymousId: cart.anonymousId,
+      });
+    }
+
+    // Neither customer nor anonymous
+    return this.ctPaymentService.createPayment(paymentData);
+  }
+
+  /**
+   * Checks if the payment method should be stored based on notification update data
+   *
+   * @param updateData - The notification update payment data
+   * @returns True if the payment method should be stored, false otherwise
+   */
+  private shouldStorePaymentMethod(updateData: NotificationUpdatePayment): boolean {
+    return updateData.paymentMethodInfo?.custom?.fields?.storePaymentMethod === true;
+  }
+
+  /**
+   * Saves a payment method for future use if requested by customer
+   *
+   * @param payment - The payment containing the method to save
+   * @param storePaymentMethod - Whether to store the payment method
+   */
+  private async savePaymentMethod(payment: Payment, storePaymentMethod: boolean): Promise<void> {
+    if (!storePaymentMethod) return;
+
+    log.info('Storing payment method as per customer request', {
+      paymentId: payment.id,
+    });
+
+    try {
+      const doesTokenAlreadyExist = await this.ctPaymentMethodService.doesTokenBelongsToCustomer({
+        customerId: payment.customer?.id as string,
+        paymentInterface: payment.paymentMethodInfo.paymentInterface!,
+        interfaceAccount: payment.paymentMethodInfo.interfaceAccount,
+        tokenValue: payment.paymentMethodInfo.token!.value,
+      });
+
+      if (doesTokenAlreadyExist) {
+        log.info('Payment method token already exists for customer, skipping storage', {
+          paymentId: payment.id,
+          customerId: payment.customer?.id,
+        });
+        return;
+      }
+
+      const spm = await this.ctPaymentMethodService.save({
+        customerId: payment.customer?.id as string,
+        method: payment.paymentMethodInfo.method as string,
+        token: payment.paymentMethodInfo.token!.value,
+        paymentInterface: payment.paymentMethodInfo.paymentInterface!,
+        interfaceAccount: payment.paymentMethodInfo.interfaceAccount,
+        customFields: payment.paymentMethodInfo.custom,
+      });
+
+      log.info('Stored payment method successfully', {
+        paymentId: payment.id,
+        storedPaymentMethodId: spm.id,
+      });
+    } catch (err) {
+      log.error('Error storing payment method', { err, paymentId: payment.id });
+    }
+  }
+
+  /**
+   * Converts Checkout.com payment status to commercetools transaction state
+   *
+   * @param status - The CKO payment status
+   * @returns Commercetools transaction state (Success, Failure, or Initial)
+   */
+  private convertPaymentStatus(status: CkoPaymentSessionStatus): string {
+    if (status === CkoPaymentSessionStatus.APPROVED) {
       return 'Success';
-    } else if (status === CkoPaymentStatus.DECLINED) {
+    } else if (status === CkoPaymentSessionStatus.DECLINED) {
       return 'Failure';
     } else {
       return 'Initial';
     }
-  }
-
-  private buildRedirectMerchantUrl(paymentReference: string): string {
-    const merchantReturnUrl = getMerchantReturnUrlFromContext() || config.merchantReturnUrl;
-    const redirectUrl = new URL(merchantReturnUrl);
-
-    redirectUrl.searchParams.append('paymentReference', paymentReference);
-    return redirectUrl.toString();
   }
 }

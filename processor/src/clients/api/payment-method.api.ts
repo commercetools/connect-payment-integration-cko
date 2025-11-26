@@ -1,7 +1,7 @@
-import { config } from '../../config/config';
-import { ApiResources } from '../types/api.type';
-import { CkoGetPaymentMethodsResponse } from '../types/payment-method.type';
+import { config } from '@app/config/config';
 import { CkoBaseApi } from './base-api';
+import { CkoGetPaymentMethodsResponse } from '../types/payment-method.type';
+import { ApiResources } from '../types/api.type';
 
 export class PaymentMethodsApi extends CkoBaseApi {
   constructor() {

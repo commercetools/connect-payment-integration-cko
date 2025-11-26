@@ -12,7 +12,7 @@ export class ACHBuilder implements PaymentComponentBuilder {
   public componentHasSubmit = true;
 
   constructor(private baseOptions: BaseOptions) {}
-  
+
   build(config: ComponentOptions): PaymentComponent {
     const cmp = new ACH(this.baseOptions, config);
     cmp.init();
@@ -30,7 +30,7 @@ export class ACH extends BaseComponent {
   }
 
   init(): void {
-    this.component = this.ckoWebComponents.create("flow", {
+    this.component = this.ckoWebComponents.create("plaid", {
       showPayButton: this.showPayButton,
     });
   }
@@ -51,8 +51,8 @@ export class ACH extends BaseComponent {
 
   async showValidation() {}
 
-  async isValid() {
-    return true;
+  async isValid(): Promise<boolean> {
+    return this.component.isValid();
   }
 
   async getState() {

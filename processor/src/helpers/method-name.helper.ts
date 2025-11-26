@@ -1,4 +1,4 @@
-import { getAllowedPaymentMethodsFromContext } from '../libs/fastify/context/context';
+import { getAllowedPaymentMethodsFromContext } from '@lib/fastify/context/context';
 
 export const convertAllowedPaymentMethodsToCkoFormat = (): string[] => {
   const allowedPaymentMethods: string[] = getAllowedPaymentMethodsFromContext();

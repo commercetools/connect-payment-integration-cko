@@ -1,4 +1,4 @@
-import { CkoVoidPaymentRequest } from '../../clients/types/payment.type';
+import { CkoVoidPaymentRequest } from '@app/clients/types/payment.type';
 import { CancelPaymentRequest } from '../types/operation.type';
 
 export class VoidPaymentConverter {

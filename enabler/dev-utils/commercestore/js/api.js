@@ -27,6 +27,30 @@ export const getCtpToken = async () => {
 };
 
 /**
+ * Get JWT token for API authentication
+ */
+export const getJwtToken = async () => {
+  const response = await fetch("http://localhost:9002/jwt/token", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      iss: "https://issuer.com",
+      sub: "test-sub",
+      "https://issuer.com/claims/project_key": `${window.__VITE_CTP_PROJECT_KEY__}`,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to get JWT token");
+  }
+
+  const data = await response.json();
+  return data.token;
+};
+
+/**
  * Ensure project has required currencies and countries configured
  */
 export const ensureProjectConfiguration = async () => {
@@ -1058,4 +1082,111 @@ const getOrCreateCartStoreType = async () => {
 
   console.log("✓ Created custom type for cart store key");
   return await createResponse.json();
+};
+
+/**
+ * Get payment by ID from CommerceTools
+ */
+export const getPaymentById = async (paymentId) => {
+  const token = await getCtpToken();
+  const apiUrl = window.__VITE_CTP_API_URL__;
+  const projectKey = window.__VITE_CTP_PROJECT_KEY__;
+
+  const response = await fetch(`${apiUrl}/${projectKey}/payments/${paymentId}`, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to get payment");
+  }
+
+  return await response.json();
+};
+
+/**
+ * Get all payments from CommerceTools with optional filters
+ * @param {Object} options - Query options
+ * @param {number} options.limit - Number of results to return (default 50)
+ * @param {number} options.offset - Number of results to skip (default 0)
+ * @param {string} options.paymentInterface - Filter by payment interface (e.g., 'checkout-cko')
+ * @param {string} options.sort - Sort expression (e.g., 'createdAt desc')
+ * @returns {Promise<Object>} Payments response with results and total
+ */
+export const getPayments = async (options = {}) => {
+  const {
+    limit = 50,
+    offset = 0,
+    paymentInterface = 'checkout-cko',
+    sort = 'createdAt desc',
+  } = options;
+
+  const token = await getCtpToken();
+  const apiUrl = window.__VITE_CTP_API_URL__;
+  const projectKey = window.__VITE_CTP_PROJECT_KEY__;
+
+  // Build where clause - only get payments with transactions AND matching interface
+  const whereConditions = [];
+  
+  if (paymentInterface) {
+    whereConditions.push(`paymentMethodInfo(paymentInterface="${paymentInterface}")`);
+  }
+  
+  // Only get payments that have at least one transaction
+  whereConditions.push('transactions is not empty');
+
+  // Build query params
+  const params = new URLSearchParams({
+    limit: limit.toString(),
+    offset: offset.toString(),
+    sort,
+  });
+
+  if (whereConditions.length > 0) {
+    params.append('where', whereConditions.join(' and '));
+  }
+
+  const response = await fetch(`${apiUrl}/${projectKey}/payments?${params.toString()}`, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to get payments");
+  }
+
+  return await response.json();
+};
+
+/**
+ * Execute action on a payment via payment-intents API
+ * @param {string} paymentId - Payment ID
+ * @param {Object} actionData - Action data (action type and optional amount)
+ * @returns {Promise<Object>} Updated payment
+ */
+export const executePaymentAction = async (paymentId, actionData) => {
+  const processorUrl = window.__VITE_PROCESSOR_URL__;
+  const token = await getCtpToken();
+
+  const response = await fetch(`${processorUrl}/operations/payment-intents/${paymentId}`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(actionData),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || `Failed to execute ${actionData.action}`);
+  }
+
+  return await response.json();
 };

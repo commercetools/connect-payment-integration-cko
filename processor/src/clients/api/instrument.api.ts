@@ -1,7 +1,7 @@
-import { config } from '../../config/config';
-import { ApiResources } from '../types/api.type';
-import { CkoInstrument } from '../types/instrument.type';
+import { config } from '@app/config/config';
 import { CkoBaseApi } from './base-api';
+import { CkoInstrument } from '../types/instrument.type';
+import { ApiResources } from '../types/api.type';
 
 export class InstrumentApi extends CkoBaseApi {
   constructor() {

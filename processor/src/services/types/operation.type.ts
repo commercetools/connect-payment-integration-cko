@@ -1,10 +1,10 @@
-import { ConfigResponseSchemaDTO } from '../../dtos/operations/config.dto';
+import { ConfigResponseSchemaDTO } from '@app/dtos/operations/config.dto';
 import {
   AmountSchemaDTO,
   PaymentIntentRequestSchemaDTO,
   PaymentModificationStatus,
-} from '../../dtos/operations/payment-intents.dto';
-import { StatusResponseSchemaDTO } from '../../dtos/operations/status.dto';
+} from '@app/dtos/operations/payment-intents.dto';
+import { StatusResponseSchemaDTO } from '@app/dtos/operations/status.dto';
 import { Payment } from '@commercetools/connect-payments-sdk/dist/commercetools';
 
 export type CapturePaymentRequest = {

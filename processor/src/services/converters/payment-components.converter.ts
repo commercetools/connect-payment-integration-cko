@@ -1,4 +1,4 @@
-import { SupportedPaymentComponentsSchemaDTO } from '../../dtos/operations/payment-componets.dto';
+import { SupportedPaymentComponentsSchemaDTO } from '@app/dtos/operations/payment-componets.dto';
 
 export class PaymentComponentsConverter {
   public convertResponse(): SupportedPaymentComponentsSchemaDTO {

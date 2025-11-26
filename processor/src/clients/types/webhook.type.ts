@@ -4,18 +4,11 @@ export enum CkoEventType {
   PAYMENT_DECLINED = 'payment_declined',
   PAYMENT_CAPTURED = 'payment_captured',
   PAYMENT_CAPTURE_DECLINED = 'payment_capture_declined',
-  PAYMENT_CAPTURE_PENDING = 'payment_capture_pending',
-  PAYMENT_PENDING = 'payment_pending',
   PAYMENT_REFUNDED = 'payment_refunded',
   PAYMENT_REFUND_DECLINED = 'payment_refund_declined',
-  PAYMENT_REFUND_PENDING = 'payment_refund_pending',
   PAYMENT_VOIDED = 'payment_voided',
   PAYMENT_VOID_DECLINED = 'payment_void_declined',
   PAYMENT_EXPIRED = 'payment_expired',
-  PAYMENT_PAID = 'payment_paid',
-  PAYMENT_RETURNED = 'payment_returned',
-  REVERSAL_APPROVED = 'reversal_approved',
-  REVERSAL_DECLINED = 'reversal_declined',
 }
 
 export type CkoWebhookEvent = {

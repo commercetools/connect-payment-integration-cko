@@ -10,7 +10,6 @@ import { BaseStoredComponentBuilder, DefaultStoredComponent } from "../base";
 
 /**
  * Stored Credit card component
- *
  */
 export class StoredCardBuilder extends BaseStoredComponentBuilder {
   constructor(baseOptions: BaseOptions) {
@@ -71,13 +70,35 @@ export class StoredCardComponent extends DefaultStoredComponent {
         paymentReference: this.getPaymentReference(),
       });
 
+      // Handle 3DS authentication if required
+      if (result.status === "Pending" && result.action?.url) {
+        // Save payment state before redirecting
+        sessionStorage.setItem(
+          "pending3DS",
+          JSON.stringify({
+            paymentReference: this.getPaymentReference(),
+            paymentMethod: this.paymentMethod,
+            timestamp: Date.now(),
+          })
+        );
+
+        // Redirect to 3DS challenge page
+        window.location.href = result.action.url;
+        return;
+      }
+
+      // Handle successful authorization
       this.onComplete({
-        isSuccess: result.status === "Authorized" || result.status === "Pending",
+        isSuccess: result.status === "Authorized",
         paymentReference: this.getPaymentReference(),
         method: { type: this.paymentMethod },
       });
     } catch (error) {
       this.onError(error, { paymentReference: this.getPaymentReference() });
     }
+  }
+
+  remove(): Promise<void> {
+    return super.remove();
   }
 }

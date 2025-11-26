@@ -12,7 +12,7 @@ export class AlmaBuilder implements PaymentComponentBuilder {
   public componentHasSubmit = true;
 
   constructor(private baseOptions: BaseOptions) {}
-  
+
   build(config: ComponentOptions): PaymentComponent {
     const cmp = new Alma(this.baseOptions, config);
     cmp.init();
@@ -51,8 +51,8 @@ export class Alma extends BaseComponent {
 
   async showValidation() {}
 
-  async isValid() {
-    return true;
+  async isValid(): Promise<boolean> {
+    return this.component.isValid();
   }
 
   async getState() {

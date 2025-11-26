@@ -5,6 +5,7 @@ import {
   Component,
   SubmitData,
   CheckoutError,
+  HandleClickResponse,
 } from "@checkout.com/checkout-web-components";
 import {
   CocoStoredPaymentMethod,
@@ -63,6 +64,7 @@ export class CkoPaymentEnabler implements PaymentEnabler {
   private onError: (error: any, context?: { paymentReference?: string; method?: { type: string } }) => void;
   private apiClient: PaymentApi;
   private initCko: Promise<void>;
+  private initStoredPaymentMethodsConfig: Promise<void>;
   private storedPaymentMethodsConfig: StoredPaymentMethodsConfig;
   private currentPaymentReference: string;
   private storePaymentDetails = false;
@@ -73,6 +75,7 @@ export class CkoPaymentEnabler implements PaymentEnabler {
     this.onComplete = options.onComplete;
     this.onError = options.onError;
     this.initCko = this.initializeCkoComponents();
+    this.initStoredPaymentMethodsConfig = this.initializeStoredPaymentMethodsConfig();
   }
 
   private async initializeCkoComponents(): Promise<void> {
@@ -94,10 +97,16 @@ export class CkoPaymentEnabler implements PaymentEnabler {
       locale: this.locale,
       paymentSession,
       onReady: () => {
-        console.log("onReady");
+        console.log("CKO Web Components are ready");
       },
       onPaymentCompleted: (component, paymentResponse) => {
-        console.info("Create Payment with PaymentId: ", paymentResponse.id);
+        console.log("Payment completed", {
+          component: component.type,
+          status: paymentResponse.status,
+          paymentId: paymentResponse.id,
+          paymentReference: this.currentPaymentReference,
+        });
+
         if (this.onComplete) {
           this.onComplete({
             paymentReference: this.currentPaymentReference,
@@ -107,10 +116,18 @@ export class CkoPaymentEnabler implements PaymentEnabler {
         }
       },
       onChange: (component) => {
-        console.log(`onChange() -> isValid: "${component.isValid()}" for "${component.type}"`);
+        console.log(`Payment component changed`, {
+          component: component.type,
+          isValid: component.isValid(),
+        });
       },
       onError: (component: Component, error: CheckoutError) => {
-        console.error("onError", error, "Component", component.type);
+        console.error("Payment component error", {
+          component: component.type,
+          error,
+          paymentReference: this.currentPaymentReference,
+        });
+
         if (this.onError) {
           this.onError(error, {
             paymentReference: this.currentPaymentReference,
@@ -118,14 +135,41 @@ export class CkoPaymentEnabler implements PaymentEnabler {
           });
         }
       },
-      handleSubmit: async (_component: Component, submitData: SubmitData) => {
+      handleClick: async (component: Component): Promise<HandleClickResponse | void> => {
+        if (component["onPayButtonClick"]) {
+          try {
+            await component["onPayButtonClick"]();
+          } catch (_error) {
+            return {
+              continue: false,
+            };
+          }
+        }
+
+        return {
+          continue: true,
+        };
+      },
+
+      handleSubmit: async (component: Component, submitData: SubmitData) => {
+        if (!component.isValid()) {
+          console.error("Cannot submit - component validation failed", {
+            component: component.type,
+          });
+          throw new Error(`Cannot submit ${component.type} component as it is not valid`);
+        }
+
         const res = await this.apiClient.submitPaymentSession(paymentSessionId, {
           ...submitData,
           paymentReference: this.currentPaymentReference,
           storePaymentMethod: this.storePaymentDetails,
         });
 
-        console.log("Payment Session submitted", res);
+        console.log("Payment session submitted successfully", {
+          component: component.type,
+          sessionId: paymentSessionId,
+          paymentReference: this.currentPaymentReference,
+        });
 
         return res;
       },
@@ -216,33 +260,43 @@ export class CkoPaymentEnabler implements PaymentEnabler {
   }
 
   async isStoredPaymentMethodsEnabled(): Promise<boolean> {
-    return true;
+    await this.initStoredPaymentMethodsConfig;
+    return this.storedPaymentMethodsConfig?.isEnabled;
   }
 
   async getStoredPaymentMethods({ allowedMethodTypes }): Promise<any> {
+    await this.initStoredPaymentMethodsConfig;
+
+    if (!this.storedPaymentMethodsConfig?.isEnabled) {
+      return [];
+    }
+
+    if (allowedMethodTypes && allowedMethodTypes.length > 0) {
+      return this.storedPaymentMethodsConfig.storedPaymentMethods.filter((method) =>
+        allowedMethodTypes.includes(method.type)
+      );
+    }
+
+    return this.storedPaymentMethodsConfig.storedPaymentMethods;
+  }
+
+  setStorePaymentDetails = (enabled: boolean): void => {
+    this.storePaymentDetails = enabled;
+  };
+
+  private async initializeStoredPaymentMethodsConfig(): Promise<void> {
     try {
       const apiRes = await this.apiClient.getStoredPaymentMethods();
       this.storedPaymentMethodsConfig = {
         isEnabled: true,
         storedPaymentMethods: apiRes.storedPaymentMethods,
       };
-
-      const storedPaymentMethods = this.storedPaymentMethodsConfig.storedPaymentMethods
-        .map(({ token, ...storedPaymentMethod }) => storedPaymentMethod)
-        .filter((method) => allowedMethodTypes.includes(method.type));
-
-      return { storedPaymentMethods };
     } catch (error) {
-      console.error("Error fetching stored payment methods", error);
+      console.warn("Failed to load stored payment methods, disabling feature", error);
       this.storedPaymentMethodsConfig = {
         isEnabled: false,
         storedPaymentMethods: [],
       };
-      return { storedPaymentMethods: [] };
     }
   }
-
-  setStorePaymentDetails = (enabled: boolean): void => {
-    this.storePaymentDetails = enabled;
-  };
 }

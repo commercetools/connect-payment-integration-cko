@@ -1,4 +1,4 @@
-import { CkoRefundPaymentRequest } from '../../clients/types/payment.type';
+import { CkoRefundPaymentRequest } from '@app/clients/types/payment.type';
 import { RefundPaymentRequest } from '../types/operation.type';
 
 export class RefundPaymentConverter {
