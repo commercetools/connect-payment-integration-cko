@@ -268,16 +268,18 @@ export class CkoPaymentEnabler implements PaymentEnabler {
     await this.initStoredPaymentMethodsConfig;
 
     if (!this.storedPaymentMethodsConfig?.isEnabled) {
-      return [];
+      return { storedPaymentMethods: [] };
     }
 
     if (allowedMethodTypes && allowedMethodTypes.length > 0) {
-      return this.storedPaymentMethodsConfig.storedPaymentMethods.filter((method) =>
-        allowedMethodTypes.includes(method.type)
-      );
+      return {
+        storedPaymentMethods: this.storedPaymentMethodsConfig.storedPaymentMethods.filter((method) =>
+          allowedMethodTypes.includes(method.type)
+        ),
+      };
     }
 
-    return this.storedPaymentMethodsConfig.storedPaymentMethods;
+    return { storedPaymentMethods: this.storedPaymentMethodsConfig.storedPaymentMethods };
   }
 
   setStorePaymentDetails = (enabled: boolean): void => {

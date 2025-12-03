@@ -51,10 +51,10 @@ export class CkoPaymentService {
     this.ctCartService = opts.ctCartService;
     this.ctPaymentService = opts.ctPaymentService;
     this.ctPaymentMethodService = opts.ctPaymentMethodService;
-    this.paymentComponentsConverter = new PaymentComponentsConverter();
-    this.createPaymentSessionConverter = new CreatePaymentSessionConverter();
-    this.submitPaymentSessionConverter = new SubmitPaymentSessionConverter();
-    this.notificationConverter = new NotificationConverter();
+    this.paymentComponentsConverter = opts.paymentComponentsConverter;
+    this.createPaymentSessionConverter = opts.createPaymentSessionConverter;
+    this.submitPaymentSessionConverter = opts.submitPaymentSessionConverter;
+    this.notificationConverter = opts.notificationConverter;
   }
 
   /**

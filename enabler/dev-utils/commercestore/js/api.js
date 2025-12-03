@@ -64,6 +64,7 @@ export const ensureProjectConfiguration = async () => {
     "AT",
     "BE",
     "DK",
+    "FI",
     "FR",
     "DE",
     "IT",
@@ -158,6 +159,7 @@ const getOrCreateTaxCategory = async (country) => {
     AT: 0.2, // Austria 20%
     BE: 0.21, // Belgium 21%
     DK: 0.25, // Denmark 25%
+    FI: 0.24, // Finland 24%
     FR: 0.2, // France 20%
     DE: 0.19, // Germany 19%
     IT: 0.22, // Italy 22%
@@ -294,19 +296,21 @@ const getOrCreateShippingMethod = async (country, currency) => {
       // Get or create zone for this country
       const zone = await getOrCreateZone(country);
 
-      // Check if shipping method has a rate for this zone and currency
-      const hasZoneRate = shippingMethod.zoneRates.some((zr) => {
-        if (zr.zone.id !== zone.id) return false;
-        return zr.shippingRates.some((sr) => sr.price.currencyCode === currency);
-      });
+      // Check if zone exists in shipping method
+      const existingZoneRate = shippingMethod.zoneRates.find((zr) => zr.zone.id === zone.id);
 
-      if (hasZoneRate) {
+      // Check if we have the specific currency we need
+      const hasRequiredCurrency = existingZoneRate
+        ? existingZoneRate.shippingRates.some((sr) => sr.price.currencyCode === currency)
+        : false;
+
+      if (hasRequiredCurrency) {
         console.log(`✓ Shipping method already has rate for zone ${zone.name} and currency ${currency}`);
         return shippingMethod;
       }
 
       // Need to add zone rate for this zone/currency combination
-      console.log(`Adding shipping rate for zone ${zone.name} and currency ${currency}`);
+      console.log(`Checking shipping rates for zone ${zone.name}...`);
 
       const shippingPrices = {
         EUR: 500, // €5.00
@@ -321,13 +325,13 @@ const getOrCreateShippingMethod = async (country, currency) => {
       };
 
       try {
-        // Check if zone is already in the shipping method
-        const zoneAlreadyAdded = shippingMethod.zoneRates.some((zr) => zr.zone.id === zone.id);
+        const zoneAlreadyAdded = !!existingZoneRate;
 
         const actions = [];
 
         // Only add zone if it's not already there
         if (!zoneAlreadyAdded) {
+          console.log(`Zone ${zone.name} not in shipping method, adding it...`);
           actions.push({
             action: "addZone",
             zone: {
@@ -337,20 +341,39 @@ const getOrCreateShippingMethod = async (country, currency) => {
           });
         }
 
-        // Add shipping rate for this currency
-        actions.push({
-          action: "addShippingRate",
-          zone: {
-            typeId: "zone",
-            id: zone.id,
-          },
-          shippingRate: {
-            price: {
-              currencyCode: currency,
-              centAmount: shippingPrices[currency] || 500,
-            },
-          },
+        // Add shipping rates for ALL currencies that are missing
+        const existingCurrencies = existingZoneRate
+          ? existingZoneRate.shippingRates.map((sr) => sr.price.currencyCode)
+          : [];
+
+        const missingCurrencies = [];
+        Object.entries(shippingPrices).forEach(([currencyCode, centAmount]) => {
+          if (!existingCurrencies.includes(currencyCode)) {
+            missingCurrencies.push(currencyCode);
+            actions.push({
+              action: "addShippingRate",
+              zone: {
+                typeId: "zone",
+                id: zone.id,
+              },
+              shippingRate: {
+                price: {
+                  currencyCode,
+                  centAmount,
+                },
+              },
+            });
+          }
         });
+
+        if (missingCurrencies.length > 0) {
+          console.log(`Missing currencies for zone ${zone.name}: ${missingCurrencies.join(", ")}`);
+        }
+
+        if (actions.length === 0) {
+          console.log(`✓ Zone ${zone.name} already has all required shipping rates`);
+          return shippingMethod;
+        }
 
         const updateResponse = await fetch(`${apiUrl}/${projectKey}/shipping-methods/${shippingMethod.id}`, {
           method: "POST",
@@ -365,16 +388,17 @@ const getOrCreateShippingMethod = async (country, currency) => {
         });
 
         if (updateResponse.ok) {
-          return await updateResponse.json();
+          const updatedMethod = await updateResponse.json();
+          console.log(`✓ Successfully updated shipping method with ${missingCurrencies.length} new rate(s)`);
+          return updatedMethod;
         } else {
           const error = await updateResponse.json();
-          console.warn("Could not update shipping method:", error.message);
-          // Return existing shipping method anyway
-          return shippingMethod;
+          console.error("Failed to update shipping method:", error);
+          throw new Error(error.message || "Failed to add shipping rates to shipping method");
         }
       } catch (error) {
-        console.warn("Could not update shipping method:", error.message);
-        return shippingMethod;
+        console.error("Error updating shipping method:", error);
+        throw error;
       }
     }
   }
@@ -451,6 +475,7 @@ const getOrCreateZone = async (country) => {
     "AT",
     "BE",
     "DK",
+    "FI",
     "FR",
     "DE",
     "IT",
@@ -619,6 +644,128 @@ const getAddressDataByCountry = (country, customerName = { firstName: "John", la
       country: "ES",
       phone: "+34 91 123 4567",
       email: "customer@example.es",
+    },
+    FI: {
+      firstName: customerName.firstName,
+      lastName: customerName.lastName,
+      streetName: "Mannerheimintie",
+      streetNumber: "5",
+      city: "Helsinki",
+      postalCode: "00100",
+      country: "FI",
+      phone: "+358 9 1234567",
+      email: "customer@example.fi",
+    },
+    NO: {
+      firstName: customerName.firstName,
+      lastName: customerName.lastName,
+      streetName: "Karl Johans gate",
+      streetNumber: "22",
+      city: "Oslo",
+      postalCode: "0162",
+      country: "NO",
+      phone: "+47 22 123456",
+      email: "customer@example.no",
+    },
+    SE: {
+      firstName: customerName.firstName,
+      lastName: customerName.lastName,
+      streetName: "Drottninggatan",
+      streetNumber: "50",
+      city: "Stockholm",
+      postalCode: "111 21",
+      country: "SE",
+      phone: "+46 8 123 456",
+      email: "customer@example.se",
+    },
+    DK: {
+      firstName: customerName.firstName,
+      lastName: customerName.lastName,
+      streetName: "Strøget",
+      streetNumber: "10",
+      city: "Copenhagen",
+      postalCode: "1160",
+      country: "DK",
+      phone: "+45 33 123456",
+      email: "customer@example.dk",
+    },
+    PL: {
+      firstName: customerName.firstName,
+      lastName: customerName.lastName,
+      streetName: "Marszałkowska",
+      streetNumber: "100",
+      city: "Warsaw",
+      postalCode: "00-026",
+      country: "PL",
+      phone: "+48 22 123 4567",
+      email: "customer@example.pl",
+    },
+    CH: {
+      firstName: customerName.firstName,
+      lastName: customerName.lastName,
+      streetName: "Bahnhofstrasse",
+      streetNumber: "50",
+      city: "Zurich",
+      postalCode: "8001",
+      country: "CH",
+      phone: "+41 44 123 4567",
+      email: "customer@example.ch",
+    },
+    AU: {
+      firstName: customerName.firstName,
+      lastName: customerName.lastName,
+      streetName: "George Street",
+      streetNumber: "200",
+      city: "Sydney",
+      state: "NSW",
+      postalCode: "2000",
+      country: "AU",
+      phone: "+61 2 1234 5678",
+      email: "customer@example.com.au",
+    },
+    AT: {
+      firstName: customerName.firstName,
+      lastName: customerName.lastName,
+      streetName: "Kärntner Straße",
+      streetNumber: "10",
+      city: "Vienna",
+      postalCode: "1010",
+      country: "AT",
+      phone: "+43 1 123 4567",
+      email: "customer@example.at",
+    },
+    BE: {
+      firstName: customerName.firstName,
+      lastName: customerName.lastName,
+      streetName: "Rue Neuve",
+      streetNumber: "123",
+      city: "Brussels",
+      postalCode: "1000",
+      country: "BE",
+      phone: "+32 2 123 4567",
+      email: "customer@example.be",
+    },
+    IT: {
+      firstName: customerName.firstName,
+      lastName: customerName.lastName,
+      streetName: "Via del Corso",
+      streetNumber: "100",
+      city: "Rome",
+      postalCode: "00186",
+      country: "IT",
+      phone: "+39 06 1234 5678",
+      email: "customer@example.it",
+    },
+    PT: {
+      firstName: customerName.firstName,
+      lastName: customerName.lastName,
+      streetName: "Avenida da Liberdade",
+      streetNumber: "200",
+      city: "Lisbon",
+      postalCode: "1250-096",
+      country: "PT",
+      phone: "+351 21 123 4567",
+      email: "customer@example.pt",
     },
     US: {
       firstName: customerName.firstName,
@@ -791,6 +938,7 @@ export const createPreconfiguredCart = async (config) => {
       DE: { email: "customer-de@example.com", firstName: "Emma", lastName: "Schmidt" },
       DK: { email: "customer-dk@example.com", firstName: "Emma", lastName: "Jensen" },
       ES: { email: "customer-es@example.com", firstName: "Sofía", lastName: "García" },
+      FI: { email: "customer-fi@example.com", firstName: "Sofia", lastName: "Virtanen" },
       FR: { email: "customer-fr@example.com", firstName: "Emma", lastName: "Martin" },
       GB: { email: "customer-gb@example.com", firstName: "Emily", lastName: "Jones" },
       IT: { email: "customer-it@example.com", firstName: "Sofia", lastName: "Rossi" },

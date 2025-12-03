@@ -38,8 +38,8 @@ export class CkoStoredPaymentMethodService {
     this.ctCartService = opts.ctCartService;
     this.ctPaymentService = opts.ctPaymentService;
     this.ctPaymentMethodService = opts.ctPaymentMethodService;
-    this.getStoredPaymentMethodsConverter = new GetStoredPaymentMethodsConverter();
-    this.processStoredPaymentConverter = new ProcessStoredPaymentConverter();
+    this.getStoredPaymentMethodsConverter = opts.getStoredPaymentMethodsConverter;
+    this.processStoredPaymentConverter = opts.processStoredPaymentConverter;
   }
 
   /**
@@ -208,7 +208,7 @@ export class CkoStoredPaymentMethodService {
 
     return {
       paymentReference: payment.id,
-      merchantReturnUrl: this.buildRedirectMerchantUrl(payment.id),
+      merchantReturnUrl: this.buildRedirectMerchantUrl(payment.id, opts.isSuccess),
     };
   }
 
@@ -407,13 +407,15 @@ export class CkoStoredPaymentMethodService {
    * Builds the redirect URL to return the customer to the merchant site
    *
    * @param paymentReference - The payment ID to append as query parameter
-   * @returns Complete URL with payment reference parameter
+   * @param isSuccess - Whether the payment was successful
+   * @returns Complete URL with payment reference and success parameters
    */
-  private buildRedirectMerchantUrl(paymentReference: string): string {
+  private buildRedirectMerchantUrl(paymentReference: string, isSuccess: boolean): string {
     const merchantReturnUrl = getMerchantReturnUrlFromContext() || getConfig().merchantReturnUrl;
     const redirectUrl = new URL(merchantReturnUrl);
 
     redirectUrl.searchParams.append('paymentReference', paymentReference);
+    redirectUrl.searchParams.append('success', isSuccess.toString());
     return redirectUrl.toString();
   }
 

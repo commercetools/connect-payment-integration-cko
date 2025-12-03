@@ -32,6 +32,7 @@ export default [
       'unused-imports': unusedImports,
     },
     files: ['*.ts'],
+
     languageOptions: {
       globals: {
         ...globals.node,

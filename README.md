@@ -15,19 +15,19 @@ This repository provides a commercetools Checkout integration for [Checkout.com]
 
 The connector supports the following payment methods through Checkout.com:
 
-- **Cards** (Visa, Mastercard, Amex, Discover, Diners Club, etc.) with 3D Secure authentication and tokenization support
-- **Apple Pay**
-- **Google Pay**
-- **PayPal**
-- **Klarna**
-- **Alma**
-- **SEPA Direct Debit**
-- **iDEAL**
-- **EPS**
-- **Przelewy24**
 - **ACH**
+- **Alma**
+- **Apple Pay**
 - **Bizum**
+- **Cards** (Visa, Mastercard, Amex, Discover, Diners Club, etc.) with 3D Secure authentication and tokenization support
+- **EPS**
+- **Google Pay**
+- **iDEAL**
+- **Klarna**
 - **MB WAY**
+- **PayPal**
+- **Przelewy24**
+- **SEPA Direct Debit**
 
 > **Note**: Payment method availability may vary depending on your Checkout.com account configuration, merchant location, and transaction currency. Please refer to [Checkout.com documentation](https://docs.checkout.com/) for specific requirements and regional availability.
 

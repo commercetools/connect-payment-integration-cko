@@ -67,8 +67,8 @@ export class GetStoredPaymentMethodsConverter {
           key: convertCardBrand(ckoInstrument.scheme),
         },
         endDigits: ckoInstrument.last4 || '',
-        expiryMonth: ckoInstrument.expiryMonth as number,
-        expiryYear: ckoInstrument.expiryYear as number,
+        expiryMonth: ckoInstrument.expiry_month as number,
+        expiryYear: ckoInstrument.expiry_year as number,
       };
     }
 

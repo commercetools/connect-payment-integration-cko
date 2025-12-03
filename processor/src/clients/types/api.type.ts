@@ -19,6 +19,5 @@ export enum ApiResources {
   VOID_PAYMENTS = '/payments/{resourceId}/voids',
   REVERSE_PAYMENTS = '/payments/{resourceId}/reversals',
   PAYMENT_METHODS = '/payment-methods',
-  GET_INSTRUMENT = '/instruments/{resourceId}',
-  DELETE_INSTRUMENT = '/instruments/{resourceId}',
+  INSTRUMENTS = '/instruments/{resourceId}',
 }

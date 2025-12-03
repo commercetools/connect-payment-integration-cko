@@ -46,7 +46,6 @@ export type ConfirmStoredPaymentResponseDTO = {
   merchantReturnUrl: string;
 };
 
-
 export type StoredPaymentMethodDisplayOptions = Static<typeof StoredPaymentMethodDisplayOptionsSchema>;
 export type StoredPaymentMethod = Static<typeof StoredPaymentMethodSchema>;
 export type StoredPaymentMethodsResponseDTO = Static<typeof StoredPaymentMethodsResponseSchema>;

@@ -83,12 +83,7 @@ function loadConfig(): AppConfig {
   return Value.Decode(AppConfigSchema, rawConfig);
 }
 
-/**
- * Validated application configuration
- *
- * Throws on startup if configuration is invalid.
- */
-export const config: AppConfig = loadConfig();
+let config: AppConfig;
 
 /**
  * Get configuration object
@@ -96,6 +91,10 @@ export const config: AppConfig = loadConfig();
  * @returns Configuration object with channel resolution methods
  */
 export const getConfig = () => {
+  if (!config) {
+    config = loadConfig();
+  }
+
   return {
     ...config,
     getChannelId,
@@ -300,14 +299,14 @@ function getPaymentInterface(): string {
 
 /**
  * Get interface account for current channel
- * @returns Interface account, or undefined if not set
+ * @returns Interface account, or channelId as fallback
  */
-function getInterfaceAccount(): string | undefined {
+function getInterfaceAccount(): string {
   const key = getCkoConfigKeyFromContext();
   const cko = config.ckoConfig;
 
   if (!key) {
-    return cko.default.interfaceAccount;
+    return cko.default.interfaceAccount || getChannelId();
   }
 
   const channel = cko.channels?.find((c) => c.key === key);

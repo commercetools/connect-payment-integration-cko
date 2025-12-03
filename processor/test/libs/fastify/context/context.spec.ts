@@ -67,4 +67,49 @@ describe('context', () => {
     const result = Context.getProcessorUrlFromContext();
     expect(result).toStrictEqual('http://127.0.0.1');
   });
+
+  test('getCheckoutTransactionItemIdFromContext', async () => {
+    const principalWithTransactionId: SessionPrincipal = {
+      ...principal,
+      checkoutTransactionItemId: 'transaction-item-123',
+    };
+    const mockRequestContext = {
+      authentication: new SessionAuthentication(sessionId, principalWithTransactionId),
+    };
+    jest.spyOn(Context, 'getRequestContext').mockReturnValue(mockRequestContext);
+    const result = Context.getCheckoutTransactionItemIdFromContext();
+    expect(result).toStrictEqual('transaction-item-123');
+  });
+
+  test('getFutureOrderNumberFromContext', async () => {
+    const principalWithOrderNumber: SessionPrincipal = {
+      ...principal,
+      futureOrderNumber: 'ORDER-2024-001',
+    };
+    const mockRequestContext = {
+      authentication: new SessionAuthentication(sessionId, principalWithOrderNumber),
+    };
+    jest.spyOn(Context, 'getRequestContext').mockReturnValue(mockRequestContext);
+    const result = Context.getFutureOrderNumberFromContext();
+    expect(result).toStrictEqual('ORDER-2024-001');
+  });
+
+  test('getCkoConfigKeyFromContext', async () => {
+    const mockRequestContext = {
+      authentication: mockSessionAuthentication,
+      ckoConfigKey: 'custom-cko-key',
+    };
+    jest.spyOn(Context, 'getRequestContext').mockReturnValue(mockRequestContext);
+    const result = Context.getCkoConfigKeyFromContext();
+    expect(result).toStrictEqual('custom-cko-key');
+  });
+
+  test('getCkoConfigKeyFromContext returns undefined when not set', async () => {
+    const mockRequestContext = {
+      authentication: mockSessionAuthentication,
+    };
+    jest.spyOn(Context, 'getRequestContext').mockReturnValue(mockRequestContext);
+    const result = Context.getCkoConfigKeyFromContext();
+    expect(result).toBeUndefined();
+  });
 });

@@ -5,6 +5,38 @@ import { ErrorAuthErrorResponse, Errorx, ErrorxAdditionalOpts } from '@commercet
 import { requestContextPlugin } from '../../../src/libs/fastify/context/context';
 import { FastifySchemaValidationError } from 'fastify/types/schema';
 
+// Mocks
+jest.mock('@app/config/config', () => {
+  const mockConfigData = {
+    projectKey: 'test-project',
+    clientId: 'test-client-id',
+    clientSecret: 'test-secret',
+    jwksUrl: 'https://test.jwks.url',
+    jwtIssuer: 'https://test.issuer',
+    authUrl: 'https://test.auth.url',
+    apiUrl: 'https://test.api.url',
+    sessionUrl: 'https://test.session.url',
+    healthCheckTimeout: 5000,
+    loggerLevel: 'info',
+    merchantReturnUrl: 'https://test.return.url',
+    ckoEnvironment: 'sandbox',
+    ckoConfig: {
+      default: {
+        channelId: 'test-channel-id',
+        publicKey: 'test-public-key',
+        secretKey: 'test-secret-key',
+        hmacKey: 'test-hmac-key',
+      },
+    },
+  };
+
+  return {
+    config: mockConfigData,
+    getConfig: jest.fn(() => mockConfigData),
+    hasMultiChannelConfig: jest.fn(() => false),
+  };
+});
+
 describe('error-handler', () => {
   let fastify: FastifyInstance;
   beforeEach(async () => {

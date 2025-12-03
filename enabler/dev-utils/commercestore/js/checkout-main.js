@@ -100,12 +100,13 @@ const init = () => {
 const checkPaymentRedirectReturn = async () => {
   const urlParams = new URLSearchParams(window.location.search);
   const paymentReference = urlParams.get("paymentReference");
+  const successParam = urlParams.get("success");
 
   if (!paymentReference) {
     return false; // Not a redirect return
   }
 
-  console.log("Detected payment redirect return:", paymentReference);
+  console.log("Detected payment redirect return:", { paymentReference, success: successParam });
 
   // Get DOM elements directly (since init() hasn't been called yet)
   const spinnerElement = document.getElementById("spinner");
@@ -118,31 +119,25 @@ const checkPaymentRedirectReturn = async () => {
   if (spinnerElement) spinnerElement.classList.remove("hidden");
 
   try {
-    // Fetch payment from CommerceTools
-    const payment = await getPaymentById(paymentReference);
+    // Fetch payment from CommerceTools (to verify it exists)
+    await getPaymentById(paymentReference);
 
     // Clean URL (remove query params)
     window.history.replaceState({}, document.title, window.location.pathname);
 
-    // Check for successful transaction
-    const hasSuccessfulTransaction = payment.transactions.some(
-      (tx) =>
-        (tx.type === "Authorization" || tx.type === "Charge") && (tx.state === "Success" || tx.state === "Pending")
-    );
-
     // Hide loading state
     if (spinnerElement) spinnerElement.classList.add("hidden");
 
-    if (hasSuccessfulTransaction) {
+    // Use the success parameter from the URL if available
+    // If success param exists, use it. If it doesn't exist, assume success (payment exists)
+    const isSuccess = successParam === null || successParam === "true";
+
+    if (isSuccess) {
       // Show success modal
       showSuccess(paymentReference);
     } else {
       // Show error modal
-      const errorMessage =
-        payment.transactions.length > 0
-          ? `Payment ${payment.transactions[0].state.toLowerCase()}`
-          : "Payment could not be completed";
-      showError(errorMessage);
+      showError("Payment could not be completed");
     }
 
     return true; // Handled redirect return
@@ -234,12 +229,22 @@ const handleQuickCartCreate = async () => {
 
   // Determine currency by country
   const currencyMap = {
+    AU: "AUD",
+    AT: "EUR",
+    BE: "EUR",
+    CH: "CHF",
     DE: "EUR",
-    NL: "EUR",
+    DK: "DKK",
     ES: "EUR",
+    FI: "EUR",
     FR: "EUR",
-    IT: "EUR",
     GB: "GBP",
+    IT: "EUR",
+    NL: "EUR",
+    NO: "NOK",
+    PL: "PLN",
+    PT: "EUR",
+    SE: "SEK",
     US: "USD",
   };
   const currency = currencyMap[country] || "EUR";
@@ -794,11 +799,11 @@ const loadPaymentComponent = async (type) => {
         }
 
         // Validate component before submitting (if isValid method exists)
-        if (typeof component.isValid === 'function') {
+        if (typeof component.isValid === "function") {
           const isValid = await component.isValid();
           if (!isValid) {
             showWarningToast("Please fill in all required fields correctly.");
-            if (typeof component.showValidation === 'function') {
+            if (typeof component.showValidation === "function") {
               await component.showValidation();
             }
             return;
@@ -859,6 +864,12 @@ const resetCheckoutState = () => {
   if (cartSummaryBtn) cartSummaryBtn.disabled = true;
   if (resetBtn) resetBtn.disabled = true;
 
+  // Re-enable cart creation buttons
+  const quickCartBtn = document.getElementById("btnQuickCart");
+  const customCartBtn = document.getElementById("btnCustomCart");
+  if (quickCartBtn) quickCartBtn.disabled = false;
+  if (customCartBtn) customCartBtn.disabled = false;
+
   selectedMethod = null;
   enabler = null;
   currentCartId = null;
@@ -903,7 +914,7 @@ const handleErrorClose = () => {
 export { getCustomerById, handleSuccessClose, handleErrorClose };
 
 // Make functions available globally for HTML onclick handlers
-if (typeof window !== 'undefined') {
+if (typeof window !== "undefined") {
   window.handleSuccessClose = handleSuccessClose;
   window.handleErrorClose = handleErrorClose;
 }
@@ -912,17 +923,15 @@ if (typeof window !== 'undefined') {
 if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", async () => {
     // Check if returning from payment redirect first
-    if (await checkPaymentRedirectReturn()) {
-      return; // Don't initialize checkout if handling redirect return
-    }
+    await checkPaymentRedirectReturn();
+    // Always initialize to set up event listeners
     init();
   });
 } else {
   (async () => {
     // Check if returning from payment redirect first
-    if (await checkPaymentRedirectReturn()) {
-      return; // Don't initialize checkout if handling redirect return
-    }
+    await checkPaymentRedirectReturn();
+    // Always initialize to set up event listeners
     init();
   })();
 }

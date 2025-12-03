@@ -115,7 +115,7 @@ export class CkoConfigHook {
       log.debug('Found cart by payment ID', { cartId: cart.id, paymentId });
       return cart;
     } catch (error) {
-      log.debug('Cart not found, trying order lookup', { paymentId });
+      log.debug('Cart not found, trying order lookup', { paymentId, error });
     }
 
     // Fallback to order (completed checkouts)
@@ -124,7 +124,7 @@ export class CkoConfigHook {
       log.debug('Found order by payment ID', { orderId: order.id, paymentId });
       return order;
     } catch (error) {
-      log.warn('Neither cart nor order found for payment ID', { paymentId });
+      log.warn('Neither cart nor order found for payment ID', { paymentId, error });
       return undefined;
     }
   }

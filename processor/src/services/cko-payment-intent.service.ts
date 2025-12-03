@@ -27,10 +27,10 @@ export class CkoPaymentIntentService {
 
   constructor(opts: CkoPaymentIntentServiceOptions) {
     this.ctPaymentService = opts.ctPaymentService;
-    this.voidPaymentConverter = new VoidPaymentConverter();
-    this.reversePaymentConverter = new ReversePaymentConverter();
-    this.capturePaymentConverter = new CapturePaymentConverter();
-    this.refundPaymentConverter = new RefundPaymentConverter();
+    this.voidPaymentConverter = opts.voidPaymentConverter;
+    this.reversePaymentConverter = opts.reversePaymentConverter;
+    this.capturePaymentConverter = opts.capturePaymentConverter;
+    this.refundPaymentConverter = opts.refundPaymentConverter;
   }
 
   /**
@@ -71,7 +71,7 @@ export class CkoPaymentIntentService {
       case 'reversePayment':
         return this.reversePayment({ payment: ctPayment, merchantReference: request.merchantReference });
       default:
-        throw new ErrorInvalidOperation(`Operation not supported: ${(request as any).action}`);
+        throw new ErrorInvalidOperation(`Operation not supported`);
     }
   }
 
