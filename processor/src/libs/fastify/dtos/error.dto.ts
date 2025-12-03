@@ -7,6 +7,7 @@ export const ErrorObject = Type.Object(
   {
     code: Type.String(),
     message: Type.String(),
+    detailedErrorMessage: Type.Optional(Type.String()),
   },
   { additionalProperties: true },
 );

@@ -4,9 +4,9 @@ import fastifyFormBody from '@fastify/formbody';
 import Fastify from 'fastify';
 import { randomUUID } from 'node:crypto';
 import { join } from 'path';
-import { config } from '../config/config';
-import { requestContextPlugin } from '../libs/fastify/context/context';
-import { errorHandler } from '../libs/fastify/error-handler';
+import { getConfig } from '@app/config/config';
+import { requestContextPlugin } from '@lib/fastify/context/context';
+import { errorHandler } from '@lib/fastify/error-handler';
 
 /**
  * Setup Fastify server instance
@@ -16,7 +16,7 @@ export const setupFastify = async () => {
   // Create fastify server instance
   const server = Fastify({
     logger: {
-      level: config.loggerLevel,
+      level: getConfig().loggerLevel,
     },
     genReqId: () => randomUUID().toString(),
     requestIdLogLabel: 'requestId',
@@ -29,7 +29,20 @@ export const setupFastify = async () => {
   // Enable CORS
   await server.register(cors, {
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Correlation-ID', 'X-Request-ID', 'X-Session-ID'],
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS', 'HEAD'],
     origin: '*',
+  });
+
+  // Customize JSON parser to allow empty bodies for DELETE requests
+  const defaultJsonParser = server.getDefaultJsonParser('ignore', 'ignore');
+  server.addContentTypeParser('application/json', { parseAs: 'string' }, (request, body, done) => {
+    if (request.method === 'DELETE') {
+      if (body === '' || body == null || (Buffer.isBuffer(body) && body.length === 0)) {
+        return done(null, {});
+      }
+      return defaultJsonParser(request, typeof body === 'string' ? body : body.toString(), done);
+    }
+    return defaultJsonParser(request, body.toString(), done);
   });
 
   // Add content type parser for the content type application/x-www-form-urlencoded

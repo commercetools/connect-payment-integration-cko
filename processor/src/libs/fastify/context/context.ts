@@ -16,6 +16,7 @@ export type ContextData = {
   correlationId: string;
   requestId: string;
   authentication?: paymentSdk.Authentication;
+  ckoConfigKey?: string;
 };
 
 export const getRequestContext = (): Partial<ContextData> => {
@@ -49,9 +50,9 @@ export const getAllowedPaymentMethodsFromContext = (): string[] => {
   return paymentSdk.getAllowedPaymentMethodsFromContext(contextData) as string[];
 };
 
-export const getPaymentInterfaceFromContext = (): string | undefined => {
+export const getCheckoutTransactionItemIdFromContext = (): string | undefined => {
   const contextData = getRequestContext() as ContextData;
-  return paymentSdk.getPaymentInterfaceFromContext(contextData);
+  return paymentSdk.getCheckoutTransactionItemIdFromContext(contextData);
 };
 
 export const getProcessorUrlFromContext = (): string => {
@@ -67,6 +68,11 @@ export const getMerchantReturnUrlFromContext = (): string | undefined => {
 export const getFutureOrderNumberFromContext = (): string | undefined => {
   const contextData = getRequestContext() as ContextData;
   return paymentSdk.getFutureOrderNumberFromContext(contextData);
+};
+
+export const getCkoConfigKeyFromContext = (): string | undefined => {
+  const contextData = getRequestContext() as ContextData;
+  return contextData.ckoConfigKey;
 };
 
 export const requestContextPlugin = fp(async (fastify: FastifyInstance) => {

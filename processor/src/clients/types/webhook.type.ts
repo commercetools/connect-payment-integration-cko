@@ -1,0 +1,51 @@
+export enum CkoEventType {
+  PAYMENT_APPROVED = 'payment_approved',
+  PAYMENT_CANCELED = 'payment_canceled',
+  PAYMENT_DECLINED = 'payment_declined',
+  PAYMENT_CAPTURED = 'payment_captured',
+  PAYMENT_CAPTURE_DECLINED = 'payment_capture_declined',
+  PAYMENT_REFUNDED = 'payment_refunded',
+  PAYMENT_REFUND_DECLINED = 'payment_refund_declined',
+  PAYMENT_VOIDED = 'payment_voided',
+  PAYMENT_VOID_DECLINED = 'payment_void_declined',
+  PAYMENT_EXPIRED = 'payment_expired',
+}
+
+export type CkoWebhookEvent = {
+  id: string;
+  type: CkoEventType | string;
+  version?: string;
+  created_on: string;
+  data: {
+    id: string;
+    action_id: string;
+    reference?: string;
+    processing_channel_id?: string;
+    amount?: number;
+    currency?: string;
+    payment_type?: string;
+    response_code?: string;
+    response_summary?: string;
+    risk?: {
+      flagged: boolean;
+      [key: string]: unknown;
+    };
+    metadata: {
+      payment_id?: string;
+      [key: string]: unknown;
+    };
+    source?: {
+      id?: string;
+      type: string;
+      expiry_month?: number;
+      expiry_year?: number;
+      scheme?: string;
+      bin?: string;
+      last_4?: string;
+      card_wallet_type?: string;
+      [key: string]: unknown;
+    };
+  };
+  _links?: unknown;
+  [key: string]: unknown;
+};

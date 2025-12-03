@@ -1,56 +1,21 @@
-import { launchpadPurchaseOrderCustomType } from '../custom-types/custom-types';
-import { log } from '../libs/logger';
-import { paymentSDK } from '../payment-sdk';
+import { log } from '@lib/logger';
+import { paymentSDK } from '@app/payment-sdk';
 
-export async function createLaunchpadPurchaseOrderNumberCustomType(): Promise<void> {
-  const apiClient = paymentSDK.ctAPI.client;
+export async function createPaymentCustomTypes(): Promise<void> {
+  log.info('Creating payment custom types if not existing...');
 
-  const getRes = await apiClient
-    .types()
-    .get({
-      queryArgs: {
-        where: `key="${launchpadPurchaseOrderCustomType.key}"`,
-      },
-    })
-    .execute();
-
-  if (getRes.body.results.length) {
-    log.info('Launchpad purchase order number custom type already exists. Skipping creation.');
-    return;
+  try {
+    const interfaceInteractionType =
+      await paymentSDK.ctCustomTypeService.createOrUpdatePredefinedInterfaceInteractionType();
+    log.info('Created (if not existing) interface interaction custom type', {
+      typeId: interfaceInteractionType.id,
+      typeKey: interfaceInteractionType.key,
+    });
+    const paymentMethodsTypes = await paymentSDK.ctCustomTypeService.createOrUpdatePredefinedPaymentMethodTypes();
+    paymentMethodsTypes.forEach((type) => {
+      log.info('Created (if not existing) payment method custom type', { typeId: type.id, typeKey: type.key });
+    });
+  } catch (error) {
+    log.error('Error creating payment custom types', { error });
   }
-
-  const postRes = await apiClient
-    .types()
-    .post({
-      body: {
-        key: launchpadPurchaseOrderCustomType.key,
-        name: { en: 'Additional fields to store purchase order information' },
-        resourceTypeIds: ['payment'],
-        fieldDefinitions: [
-          {
-            type: {
-              name: 'String',
-            },
-            name: launchpadPurchaseOrderCustomType.purchaseOrderNumber,
-            label: {
-              en: 'Purchase Order Number',
-            },
-            required: true,
-          },
-          {
-            type: {
-              name: 'String',
-            },
-            name: launchpadPurchaseOrderCustomType.invoiceMemo,
-            label: {
-              en: 'Invoce Memo',
-            },
-            required: false,
-          },
-        ],
-      },
-    })
-    .execute();
-
-  log.info('Launchpad purchase order number custom type created successfully', postRes.body?.id);
 }

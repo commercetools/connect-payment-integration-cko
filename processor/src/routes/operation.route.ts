@@ -6,29 +6,33 @@ import {
 } from '@commercetools/connect-payments-sdk';
 import { Type } from '@sinclair/typebox';
 import { FastifyInstance, FastifyPluginOptions } from 'fastify';
-import { ConfigResponseSchema, ConfigResponseSchemaDTO } from '../dtos/operations/config.dto';
-import { SupportedPaymentComponentsSchema } from '../dtos/operations/payment-componets.dto';
+import { ConfigResponseSchema, ConfigResponseSchemaDTO } from '@app/dtos/operations/config.dto';
+import { SupportedPaymentComponentsSchema } from '@app/dtos/operations/payment-componets.dto';
 import {
   PaymentIntentRequestSchema,
   PaymentIntentRequestSchemaDTO,
   PaymentIntentResponseSchema,
   PaymentIntentResponseSchemaDTO,
-} from '../dtos/operations/payment-intents.dto';
-import { StatusResponseSchema, StatusResponseSchemaDTO } from '../dtos/operations/status.dto';
-import { AbstractPaymentService } from '../services/abstract-payment.service';
+} from '@app/dtos/operations/payment-intents.dto';
+import { StatusResponseSchema, StatusResponseSchemaDTO } from '@app/dtos/operations/status.dto';
 import {
   TransactionDraft,
   TransactionDraftDTO,
   TransactionResponse,
   TransactionResponseDTO,
-} from '../dtos/operations/transaction.dto';
+} from '@app/dtos/operations/transaction.dto';
+import { CkoConfigHook } from '@lib/fastify/hooks/cko-config.hook';
+import { CkoPaymentIntentService } from '@app/services/cko-payment-intent.service';
+import { CkoPaymentService } from '@app/services/cko-payment.service';
 
 type OperationRouteOptions = {
   sessionHeaderAuthHook: SessionHeaderAuthenticationHook;
   oauth2AuthHook: Oauth2AuthenticationHook;
   jwtAuthHook: JWTAuthenticationHook;
   authorizationHook: AuthorityAuthorizationHook;
-  paymentService: AbstractPaymentService;
+  ckoConfigHook: CkoConfigHook;
+  paymentService: CkoPaymentService;
+  paymentIntentService: CkoPaymentIntentService;
 };
 
 export const operationsRoute = async (fastify: FastifyInstance, opts: FastifyPluginOptions & OperationRouteOptions) => {
@@ -86,6 +90,7 @@ export const operationsRoute = async (fastify: FastifyInstance, opts: FastifyPlu
       preHandler: [
         opts.oauth2AuthHook.authenticate(),
         opts.authorizationHook.authorize('manage_project', 'manage_checkout_payment_intents'),
+        opts.ckoConfigHook.setConfigKey(),
       ],
       schema: {
         params: {
@@ -104,7 +109,7 @@ export const operationsRoute = async (fastify: FastifyInstance, opts: FastifyPlu
     },
     async (request, reply) => {
       const { id } = request.params;
-      const resp = await opts.paymentService.modifyPayment({
+      const resp = await opts.paymentIntentService.modifyPayment({
         paymentId: id,
         data: request.body,
       });
@@ -129,8 +134,7 @@ export const operationsRoute = async (fastify: FastifyInstance, opts: FastifyPlu
       },
     },
     async (request, reply) => {
-      const result = await opts.paymentService.handleTransaction(request.body);
-      return reply.status(201).send(result);
+      return reply.status(201).send();
     },
   );
 };

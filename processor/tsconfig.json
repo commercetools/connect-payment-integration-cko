@@ -12,7 +12,12 @@
     "strict": true,
     "skipLibCheck": true,
     "rootDir": "./src",
-    "outDir": "./dist"
+    "outDir": "./dist",
+    "baseUrl": "./src",
+    "paths": {
+      "@lib/*": ["libs/*"],
+      "@app/*": ["*"]
+    }
   },
   "include": ["src/**/*"],
   "exclude": ["src/**/*.[test|spec].ts"]
