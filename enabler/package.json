@@ -13,7 +13,7 @@
   },
   "dependencies": {
     "@checkout.com/checkout-web-components": "1.4.0",
-    "serve": "14.2.4"
+    "serve": "14.2.5"
   },
   "devDependencies": {
     "@types/node": "24.1.0",
