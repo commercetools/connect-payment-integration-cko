@@ -55,7 +55,7 @@ export const operationsRoute = async (fastify: FastifyInstance, opts: FastifyPlu
   fastify.get<{ Reply: StatusResponseSchemaDTO }>(
     '/status',
     {
-      preHandler: [opts.jwtAuthHook.authenticate()],
+      // preHandler: [opts.jwtAuthHook.authenticate()],
       schema: {
         response: {
           200: StatusResponseSchema,

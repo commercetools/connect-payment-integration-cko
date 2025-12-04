@@ -70,6 +70,7 @@ describe('PaymentMethodsApi', () => {
 
       nock(baseUrl)
         .get('/payment-methods')
+        .query({ processing_channel_id: 'test-channel-id' })
         .matchHeader('Authorization', 'Bearer test-secret-key')
         .reply(200, mockResponse);
 
@@ -84,7 +85,10 @@ describe('PaymentMethodsApi', () => {
 
     it('should throw CkoApiError on 401 unauthorized', async () => {
       // Arrange
-      nock(baseUrl).get('/payment-methods').reply(401, { error: 'Unauthorized' });
+      nock(baseUrl)
+        .get('/payment-methods')
+        .query({ processing_channel_id: 'test-channel-id' })
+        .reply(401, { error: 'Unauthorized' });
 
       // Act & Assert
       await expect(api.getPaymentMethods()).rejects.toMatchObject({
@@ -95,7 +99,10 @@ describe('PaymentMethodsApi', () => {
 
     it('should throw CkoApiError on 404 not found', async () => {
       // Arrange
-      nock(baseUrl).get('/payment-methods').reply(404, { error: 'Not found' });
+      nock(baseUrl)
+        .get('/payment-methods')
+        .query({ processing_channel_id: 'test-channel-id' })
+        .reply(404, { error: 'Not found' });
 
       // Act & Assert
       await expect(api.getPaymentMethods()).rejects.toMatchObject({
@@ -106,7 +113,10 @@ describe('PaymentMethodsApi', () => {
 
     it('should throw CkoApiError on 500 server error', async () => {
       // Arrange
-      nock(baseUrl).get('/payment-methods').reply(500, { error: 'Internal server error' });
+      nock(baseUrl)
+        .get('/payment-methods')
+        .query({ processing_channel_id: 'test-channel-id' })
+        .reply(500, { error: 'Internal server error' });
 
       // Act & Assert
       await expect(api.getPaymentMethods()).rejects.toMatchObject({
@@ -117,7 +127,10 @@ describe('PaymentMethodsApi', () => {
 
     it('should handle network errors', async () => {
       // Arrange
-      nock(baseUrl).get('/payment-methods').replyWithError('Network error');
+      nock(baseUrl)
+        .get('/payment-methods')
+        .query({ processing_channel_id: 'test-channel-id' })
+        .replyWithError('Network error');
 
       // Act & Assert
       await expect(api.getPaymentMethods()).rejects.toMatchObject({
