@@ -1137,6 +1137,7 @@ export const getSessionId = async (cartId) => {
       "paypal",
       "przelewy24",
       "sepa",
+      "vipps",
     ],
   };
 

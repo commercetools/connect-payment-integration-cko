@@ -32,6 +32,7 @@ import { MBWayBuilder } from "../components/payment-methods/mbway";
 import { PaymentApi } from "../api/api.client";
 import { ACHBuilder } from "../components/payment-methods/ach";
 import { StoredCardBuilder } from "../stored/stored-payment-methods/card";
+import { VippsBuilder } from "../components/payment-methods/vipps";
 
 declare global {
   interface ImportMeta {
@@ -193,6 +194,7 @@ export class CkoPaymentEnabler implements PaymentEnabler {
       paypal: PayPalBuilder,
       przelewy24: Przelewy24Builder,
       sepa: SepaBuilder,
+      vipps: VippsBuilder,
     };
 
     if (!Object.keys(supportedMethods).includes(type)) {

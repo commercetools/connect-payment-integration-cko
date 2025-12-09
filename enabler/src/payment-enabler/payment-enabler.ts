@@ -428,6 +428,9 @@ export enum PaymentMethod {
 
   /** TWINT mobile payments (Switzerland) */
   twint = "twint",
+
+  /** Vipps mobile payments (Norway) */
+  vipps = "vipps",
 }
 
 /**
