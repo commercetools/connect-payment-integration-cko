@@ -44,6 +44,9 @@ export class PaymentComponentsConverter {
         {
           type: 'sepa',
         },
+        {
+          type: 'vipps',
+        },
       ],
     };
   }

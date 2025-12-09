@@ -28,6 +28,7 @@ The connector supports the following payment methods through Checkout.com:
 - **PayPal**
 - **Przelewy24**
 - **SEPA Direct Debit**
+- **Vipps**
 
 > **Note**: Payment method availability may vary depending on your Checkout.com account configuration, merchant location, and transaction currency. Please refer to [Checkout.com documentation](https://docs.checkout.com/) for specific requirements and regional availability.
 

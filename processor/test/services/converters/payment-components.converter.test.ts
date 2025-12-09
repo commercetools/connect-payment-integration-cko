@@ -102,6 +102,12 @@ describe('PaymentComponentsConverter', () => {
       expect(result.components).toContainEqual({ type: 'sepa' });
     });
 
+    test('should include Vipps component', () => {
+      const result = converter.convertResponse();
+
+      expect(result.components).toContainEqual({ type: 'vipps' });
+    });
+
     test('should return consistent structure on multiple calls', () => {
       const result1 = converter.convertResponse();
       const result2 = converter.convertResponse();
