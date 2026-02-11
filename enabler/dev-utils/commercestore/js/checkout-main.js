@@ -119,8 +119,18 @@ const checkPaymentRedirectReturn = async () => {
   if (spinnerElement) spinnerElement.classList.remove("hidden");
 
   try {
-    // Fetch payment from CommerceTools (to verify it exists)
-    await getPaymentById(paymentReference);
+    // Fetch payment from CommerceTools to check actual transaction status
+    const payment = await getPaymentById(paymentReference);
+
+    // Log the payment object and URL parameters for debugging
+    console.log("Payment redirect return - Full payment data:", {
+      paymentReference,
+      successParam,
+      paymentId: payment.id,
+      paymentTransactions: payment.transactions,
+      paymentTransactionsCount: payment.transactions?.length || 0,
+      fullPaymentObject: JSON.stringify(payment, null, 2),
+    });
 
     // Clean URL (remove query params)
     window.history.replaceState({}, document.title, window.location.pathname);
@@ -128,9 +138,64 @@ const checkPaymentRedirectReturn = async () => {
     // Hide loading state
     if (spinnerElement) spinnerElement.classList.add("hidden");
 
-    // Use the success parameter from the URL if available
-    // If success param exists, use it. If it doesn't exist, assume success (payment exists)
-    const isSuccess = successParam === null || successParam === "true";
+    // Determine payment success by checking actual transaction states
+    // Check if there are any successful transactions (Charge or Authorization with Success state)
+    let isSuccess = false;
+    
+    if (payment.transactions && payment.transactions.length > 0) {
+      console.log("Analyzing transactions:", {
+        totalTransactions: payment.transactions.length,
+        transactions: payment.transactions.map(txn => ({
+          id: txn.id,
+          type: txn.type,
+          state: txn.state,
+          timestamp: txn.timestamp || txn.createdAt,
+        })),
+      });
+
+      // Find the latest transaction that represents the payment outcome
+      // Look for Charge or Authorization transactions with Success state
+      const successfulTransaction = payment.transactions
+        .filter(txn => 
+          (txn.type === 'Charge' || txn.type === 'Authorization') && 
+          txn.state === 'Success'
+        )
+        .sort((a, b) => new Date(b.timestamp || b.createdAt || 0) - new Date(a.timestamp || a.createdAt || 0))[0];
+      
+      console.log("Successful transaction found:", successfulTransaction);
+      isSuccess = !!successfulTransaction;
+      
+      // If no successful transaction found, check if there's a Failure transaction
+      // This helps identify failed payments
+      if (!isSuccess) {
+        const failedTransaction = payment.transactions
+          .filter(txn => 
+            (txn.type === 'Charge' || txn.type === 'Authorization') && 
+            txn.state === 'Failure'
+          )
+          .sort((a, b) => new Date(b.timestamp || b.createdAt || 0) - new Date(a.timestamp || a.createdAt || 0))[0];
+        
+        console.log("Failed transaction found:", failedTransaction);
+        
+        if (failedTransaction) {
+          isSuccess = false;
+        } else {
+          // Fallback: if URL has success param, use it; otherwise default to false for safety
+          console.log("No clear success/failure transaction, using URL param:", successParam);
+          isSuccess = successParam === "true";
+        }
+      }
+    } else {
+      // No transactions yet - use URL parameter if available, otherwise default to false
+      console.log("No transactions found, using URL param:", successParam);
+      isSuccess = successParam === "true";
+    }
+
+    console.log("Final payment status determination:", {
+      isSuccess,
+      willShowSuccess: isSuccess,
+      paymentReference,
+    });
 
     if (isSuccess) {
       // Show success modal

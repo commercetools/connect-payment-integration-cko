@@ -101,17 +101,34 @@ export class CkoPaymentEnabler implements PaymentEnabler {
         console.log("CKO Web Components are ready");
       },
       onPaymentCompleted: (component, paymentResponse) => {
-        console.log("Payment completed", {
+        // Log the full checkout.com payment response
+        console.log("Payment completed - Full CKO Response:", {
           component: component.type,
           status: paymentResponse.status,
           paymentId: paymentResponse.id,
           paymentReference: this.currentPaymentReference,
+          fullPaymentResponse: JSON.stringify(paymentResponse, null, 2),
+          isApproved: paymentResponse.status === "Approved",
+          approved: paymentResponse.approved,
+          allStatusFields: {
+            status: paymentResponse.status,
+            approved: paymentResponse.approved,
+            responseCode: paymentResponse.responseCode,
+            responseSummary: paymentResponse.responseSummary,
+          },
+        });
+
+        const isSuccess = paymentResponse.status === "Approved";
+        console.log("Determined payment success:", {
+          isSuccess,
+          status: paymentResponse.status,
+          paymentId: paymentResponse.id,
         });
 
         if (this.onComplete) {
           this.onComplete({
             paymentReference: this.currentPaymentReference,
-            isSuccess: paymentResponse.status === "Approved",
+            isSuccess: isSuccess,
             method: { type: component.type },
           });
         }

@@ -287,6 +287,16 @@ export class CkoPaymentService {
 
     try {
       const ckoPayment = await getCkoApiClient().payments.getPayment(opts.ckoPaymentId);
+      
+      // Log the full CKO payment response
+      log.info('CKO Payment response received', {
+        ckoPaymentId: opts.ckoPaymentId,
+        paymentStatus: ckoPayment.status,
+        paymentApproved: ckoPayment.approved,
+        paymentResponse: JSON.stringify(ckoPayment, null, 2),
+        isSuccessFromQuery: opts.isSuccess,
+      });
+
       const methodType = ckoPayment.source?.type || 'unknown';
       const transactionType = isMethodAutoCaptured(methodType) ? 'Charge' : 'Authorization';
       const interfaceInteraction = populateInterfaceInteraction({
