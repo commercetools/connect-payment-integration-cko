@@ -47,4 +47,5 @@ export type NotificationUpdatePayment = {
   pspReference?: string;
   transaction: TransactionData;
   paymentMethodInfo: PaymentMethodInfoDraft;
+  storePaymentMethod?: boolean;
 };

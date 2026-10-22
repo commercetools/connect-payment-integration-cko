@@ -108,12 +108,12 @@ export class CkoPaymentIntentService {
       });
     }
 
-    const interfaceInteraction = populateInterfaceInteraction({
+    const interfaceInteraction = await populateInterfaceInteraction({
       interactionId: randomUUID(),
       type: 'CapturePayment',
       createdAt: new Date().toISOString(),
-      request: JSON.stringify(ckoRequest),
-      response: JSON.stringify(ckoResponse),
+      request: ckoRequest,
+      response: ckoResponse,
     });
 
     const updatePayment = await this.ctPaymentService.updatePayment({
@@ -175,12 +175,12 @@ export class CkoPaymentIntentService {
       });
     }
 
-    const interfaceInteraction = populateInterfaceInteraction({
+    const interfaceInteraction = await populateInterfaceInteraction({
       interactionId: randomUUID(),
       type: 'CancelPayment',
       createdAt: new Date().toISOString(),
-      request: JSON.stringify(ckoRequest),
-      response: JSON.stringify(ckoResponse),
+      request: ckoRequest,
+      response: ckoResponse,
     });
     const updatePayment = await this.ctPaymentService.updatePayment({
       id: request.payment.id,
@@ -240,12 +240,12 @@ export class CkoPaymentIntentService {
         err: error,
       });
     }
-    const interfaceInteraction = populateInterfaceInteraction({
+    const interfaceInteraction = await populateInterfaceInteraction({
       interactionId: randomUUID(),
       type: 'RefundPayment',
       createdAt: new Date().toISOString(),
-      request: JSON.stringify(ckoRequest),
-      response: JSON.stringify(ckoResponse),
+      request: ckoRequest,
+      response: ckoResponse,
     });
 
     const updatePayment = await this.ctPaymentService.updatePayment({
@@ -314,12 +314,12 @@ export class CkoPaymentIntentService {
       });
     }
 
-    const interfaceInteraction = populateInterfaceInteraction({
+    const interfaceInteraction = await populateInterfaceInteraction({
       interactionId: randomUUID(),
       type: 'ReversePayment',
       createdAt: new Date().toISOString(),
-      request: JSON.stringify(ckoRequest),
-      response: JSON.stringify(ckoResponse),
+      request: ckoRequest,
+      response: ckoResponse,
     });
 
     const updatePayment = await this.ctPaymentService.updatePayment({

@@ -19,6 +19,15 @@ import { ProcessStoredPaymentConverter } from '../../src/services/converters/pro
 import { GetStoredPaymentMethodsConverter } from '../../src/services/converters/get-stored-payment-methods.converter';
 import { ProcessStoredPaymentResponseDTO } from '../../src/dtos/stored-payment-methods.dto';
 
+vi.mock('@app/payment-sdk', () => ({
+  paymentSDK: {
+    ctCustomTypeService: {
+      createOrUpdatePredefinedInterfaceInteractionType: vi.fn().mockResolvedValue({}),
+      createOrUpdatePredefinedPaymentMethodTypes: vi.fn().mockResolvedValue([]),
+    },
+  },
+}));
+
 vi.mock('@app/config/config', () => {
   const mockConfigData = {
     projectKey: 'test-project',

@@ -11,6 +11,15 @@ import { RefundPaymentConverter } from '../../src/services/converters/refund-pay
 import { PaymentModificationStatus } from '../../src/dtos/operations/payment-intents.dto';
 import { CkoRefundPaymentRequest } from '../../src/clients/types/payment.type';
 
+vi.mock('@app/payment-sdk', () => ({
+  paymentSDK: {
+    ctCustomTypeService: {
+      createOrUpdatePredefinedInterfaceInteractionType: vi.fn().mockResolvedValue({}),
+      createOrUpdatePredefinedPaymentMethodTypes: vi.fn().mockResolvedValue([]),
+    },
+  },
+}));
+
 vi.mock('@app/config/config', () => {
   const mockConfigData = {
     projectKey: 'test-project',

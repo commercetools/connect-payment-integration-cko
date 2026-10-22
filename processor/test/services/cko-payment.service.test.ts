@@ -37,7 +37,18 @@ import { NotificationUpdatePayment } from '../../src/services/types/cko-payment.
 import { SubmitPaymentSessionRequest } from '../../src/clients/types/payment-session.type';
 import { NotImplementedError } from '../../src/errors/cko-api.error';
 import { TransactionDraftDTO } from '../../src/dtos/operations/transaction.dto';
+import { paymentSDK } from '../../src/payment-sdk';
 import { CkoGetPaymentResponse } from '../../src/clients/types/payment.type';
+
+vi.mock('@app/payment-sdk', () => ({
+  appLogger: { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() },
+  paymentSDK: {
+    ctCustomTypeService: {
+      createOrUpdatePredefinedInterfaceInteractionType: vi.fn().mockResolvedValue({}),
+      createOrUpdatePredefinedPaymentMethodTypes: vi.fn().mockResolvedValue([]),
+    },
+  },
+}));
 
 vi.mock('@app/config/config', () => {
   const mockConfigData = {
@@ -661,6 +672,35 @@ describe('CkoPaymentService', () => {
       );
     });
 
+    it('should process the notification without the card details when the payment method types cannot be created', async () => {
+      // Arrange
+      const mockEvent = { type: 'payment_approved', data: { id: 'cko-payment-id' } } as CkoWebhookEvent;
+      const mockUpdateData = {
+        paymentId: 'payment-id',
+        pspReference: 'cko-payment-id',
+        transaction: { type: 'Authorization', state: 'Success', amount: { centAmount: 1000, currencyCode: 'EUR' } },
+        paymentMethodInfo: {
+          method: 'card',
+          custom: { type: { typeId: 'type', key: 'commercetools-checkout-card-details' }, fields: { brand: 'visa' } },
+        },
+      } as unknown as NotificationUpdatePayment;
+      vi.mocked(paymentSDK.ctCustomTypeService.createOrUpdatePredefinedPaymentMethodTypes).mockRejectedValueOnce(
+        new Error('boom'),
+      );
+      vi.spyOn(mockNotificationConverter, 'convert').mockResolvedValue(mockUpdateData);
+      vi.spyOn(mockPaymentService, 'updatePayment').mockResolvedValue({ id: 'payment-id', version: 2 } as Payment);
+
+      // Act
+      await service.processNotification({ event: mockEvent });
+
+      // Assert
+      expect(mockPaymentService.updatePayment).toHaveBeenCalledWith(
+        expect.objectContaining({
+          paymentMethodInfo: { method: 'card', custom: undefined },
+        }),
+      );
+    });
+
     it('should save payment method when requested', async () => {
       // Arrange
       const mockEvent = {
@@ -681,6 +721,7 @@ describe('CkoPaymentService', () => {
             currencyCode: 'EUR',
           },
         },
+        storePaymentMethod: true,
         paymentMethodInfo: {
           method: 'card',
           custom: {

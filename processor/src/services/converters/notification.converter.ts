@@ -34,7 +34,20 @@ export class NotificationConverter {
     if (!handler) {
       throw new UnsupportedNotificationError({ notificationEvent: opts.event.type });
     }
-    return handler(opts.event);
+    return {
+      ...handler(opts.event),
+      storePaymentMethod: this.shouldStorePaymentMethod(opts.event),
+    };
+  }
+
+  /**
+   * Whether the shopper asked to save the card used in the payment. It does not depend on the channel setting
+   * `savePaymentMethodAdditionalDetails`, which only controls the extra card details.
+   */
+  private shouldStorePaymentMethod(event: CkoWebhookEvent): boolean {
+    return Boolean(
+      event.data.source?.type === 'card' && event.data.source?.id && !event.data.metadata?.payment_method_id,
+    );
   }
 
   private handlePaymentApproved = (event: CkoWebhookEvent): NotificationUpdatePayment => {
@@ -217,7 +230,7 @@ export class NotificationConverter {
       bin: event.data.source?.bin,
       expiryMonth: event.data.source?.expiry_month,
       expiryYear: event.data.source?.expiry_year,
-      storePaymentMethod: event.data.source?.id && !event.data.metadata?.payment_method_id ? true : false,
+      storePaymentMethod: this.shouldStorePaymentMethod(event),
     });
   }
 }

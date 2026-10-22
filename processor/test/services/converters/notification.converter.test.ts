@@ -56,6 +56,7 @@ describe('NotificationConverter', () => {
         paymentId: 'ct-payment-123',
         pspReference: 'pay_123',
         paymentMethodInfo: expect.any(Object),
+        storePaymentMethod: false,
         transaction: {
           type: 'Authorization',
           state: 'Success',
@@ -66,6 +67,42 @@ describe('NotificationConverter', () => {
           interfaceId: 'pay_123',
         },
       });
+    });
+
+    test('should flag the card to be stored even when the additional details are disabled', async () => {
+      mockGetConfig.mockReturnValue({
+        isSavePaymentMethodAdditionalDetails: () => false,
+      } as any);
+      const event = createMockEvent(CkoEventType.PAYMENT_APPROVED, {
+        data: {
+          id: 'pay_123',
+          amount: 10000,
+          currency: 'USD',
+          source: { type: 'card', id: 'src_card_123' },
+          metadata: { payment_id: 'ct-123' },
+        },
+      } as unknown as CkoWebhookEvent);
+
+      const result = await converter.convert({ event });
+
+      expect(result.storePaymentMethod).toBe(true);
+      expect(result.paymentMethodInfo.custom).toBeUndefined();
+    });
+
+    test('should not flag the card to be stored when it comes from a saved payment method', async () => {
+      const event = createMockEvent(CkoEventType.PAYMENT_APPROVED, {
+        data: {
+          id: 'pay_123',
+          amount: 10000,
+          currency: 'USD',
+          source: { type: 'card', id: 'src_card_123' },
+          metadata: { payment_id: 'ct-123', payment_method_id: 'pm-1' },
+        },
+      } as unknown as CkoWebhookEvent);
+
+      const result = await converter.convert({ event });
+
+      expect(result.storePaymentMethod).toBe(false);
     });
 
     test('should handle PAYMENT_CANCELED event', async () => {
