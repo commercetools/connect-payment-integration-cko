@@ -12,14 +12,14 @@
     "serve": "npm run build && serve public -l 3000 --cors"
   },
   "dependencies": {
-    "@checkout.com/checkout-web-components": "1.7.0",
-    "serve": "14.2.5"
+    "@checkout.com/checkout-web-components": "1.14.0",
+    "serve": "14.2.6"
   },
   "devDependencies": {
     "@types/node": "24.10.1",
-    "jest": "30.2.0",
-    "sass": "1.94.2",
-    "ts-jest": "29.4.6",
+    "jest": "30.5.2",
+    "sass": "1.105.2",
+    "ts-jest": "29.4.15",
     "ts-node": "10.9.2",
     "typescript": "5.9.3",
     "vite": "7.2.6",
