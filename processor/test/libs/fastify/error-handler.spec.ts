@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, test } from '@jest/globals';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import Fastify, { type FastifyInstance, FastifyError } from 'fastify';
 import { errorHandler } from '../../../src/libs/fastify/error-handler';
 import { ErrorAuthErrorResponse, Errorx, ErrorxAdditionalOpts } from '@commercetools/connect-payments-sdk';
@@ -6,7 +6,7 @@ import { requestContextPlugin } from '../../../src/libs/fastify/context/context'
 import { FastifySchemaValidationError } from 'fastify/types/schema';
 
 // Mocks
-jest.mock('@app/config/config', () => {
+vi.mock('@app/config/config', () => {
   const mockConfigData = {
     projectKey: 'test-project',
     clientId: 'test-client-id',
@@ -16,6 +16,7 @@ jest.mock('@app/config/config', () => {
     authUrl: 'https://test.auth.url',
     apiUrl: 'https://test.api.url',
     sessionUrl: 'https://test.session.url',
+    checkoutUrl: 'https://test.checkout.url',
     healthCheckTimeout: 5000,
     loggerLevel: 'info',
     merchantReturnUrl: 'https://test.return.url',
@@ -32,8 +33,8 @@ jest.mock('@app/config/config', () => {
 
   return {
     config: mockConfigData,
-    getConfig: jest.fn(() => mockConfigData),
-    hasMultiChannelConfig: jest.fn(() => false),
+    getConfig: vi.fn(() => mockConfigData),
+    hasMultiChannelConfig: vi.fn(() => false),
   };
 });
 

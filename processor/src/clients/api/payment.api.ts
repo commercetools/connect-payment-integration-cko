@@ -1,4 +1,3 @@
-import { getConfig } from '@app/config/config';
 import { ApiResources } from '../types/api.type';
 import {
   CkoCapturePaymentRequest,
@@ -21,7 +20,7 @@ export class PaymentApi extends CkoBaseApi {
   }
 
   public async createPayment(request: CkoPaymentRequest): Promise<CkoPaymentResponse> {
-    const url = this.buildResourceUrl(getConfig().ckoEnvironment, ApiResources.CREATE_PAYMENT);
+    const url = this.buildResourceUrl(ApiResources.CREATE_PAYMENT);
 
     return await this.executeCall<CkoPaymentResponse>({
       method: 'post',
@@ -31,7 +30,7 @@ export class PaymentApi extends CkoBaseApi {
   }
 
   public async getPayment(id: string): Promise<CkoGetPaymentResponse> {
-    const url = this.buildResourceUrl(getConfig().ckoEnvironment, ApiResources.GET_PAYMENT, id);
+    const url = this.buildResourceUrl(ApiResources.GET_PAYMENT, id);
 
     return await this.executeCall<CkoGetPaymentResponse>({
       method: 'get',
@@ -40,7 +39,7 @@ export class PaymentApi extends CkoBaseApi {
   }
 
   public async voidPayment(id: string, request: CkoVoidPaymentRequest): Promise<CkoVoidPaymentResponse> {
-    const url = this.buildResourceUrl(getConfig().ckoEnvironment, ApiResources.VOID_PAYMENTS, id);
+    const url = this.buildResourceUrl(ApiResources.VOID_PAYMENTS, id);
 
     return await this.executeCall<CkoVoidPaymentResponse>({
       method: 'post',
@@ -50,7 +49,7 @@ export class PaymentApi extends CkoBaseApi {
   }
 
   public async reversePayment(id: string, request: CkoReversePaymentRequest): Promise<CkoReversePaymentResponse> {
-    const url = this.buildResourceUrl(getConfig().ckoEnvironment, ApiResources.REVERSE_PAYMENTS, id);
+    const url = this.buildResourceUrl(ApiResources.REVERSE_PAYMENTS, id);
 
     return await this.executeCall<CkoReversePaymentResponse>({
       method: 'post',
@@ -60,7 +59,7 @@ export class PaymentApi extends CkoBaseApi {
   }
 
   public async capturePayment(id: string, request: CkoCapturePaymentRequest): Promise<CkoCapturePaymentResponse> {
-    const url = this.buildResourceUrl(getConfig().ckoEnvironment, ApiResources.CAPTURE_PAYMENTS, id);
+    const url = this.buildResourceUrl(ApiResources.CAPTURE_PAYMENTS, id);
 
     return await this.executeCall<CkoCapturePaymentResponse>({
       method: 'post',
@@ -70,7 +69,7 @@ export class PaymentApi extends CkoBaseApi {
   }
 
   public async refundPayment(id: string, request: CkoRefundPaymentRequest): Promise<CkoRefundPaymentResponse> {
-    const url = this.buildResourceUrl(getConfig().ckoEnvironment, ApiResources.REFUND_PAYMENTS, id);
+    const url = this.buildResourceUrl(ApiResources.REFUND_PAYMENTS, id);
 
     return await this.executeCall<CkoRefundPaymentResponse>({
       method: 'post',

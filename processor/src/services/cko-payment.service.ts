@@ -8,6 +8,7 @@ import {
   Cart,
   Payment,
 } from '@commercetools/connect-payments-sdk';
+import { TransactionDraftDTO, TransactionResponseDTO } from '@app/dtos/operations/transaction.dto';
 import { ConfigResponse, StatusResponse } from './types/operation.type';
 
 import { SupportedPaymentComponentsSchemaDTO } from '@app/dtos/operations/payment-componets.dto';
@@ -30,12 +31,12 @@ import { SubmitPaymentSessionConverter } from './converters/submit-payment-sessi
 import { log } from '@lib/logger';
 import { CkoWebhookEvent } from '@app/clients/types/webhook.type';
 import { NotificationConverter } from './converters/notification.converter';
-import { UnsupportedNotificationError } from '@app/errors/cko-api.error';
-import { CkoPaymentServiceOptions, NotificationUpdatePayment } from './types/cko-payment.type';
+import { NotImplementedError, UnsupportedNotificationError } from '@app/errors/cko-api.error';
+import { CkoPaymentServiceOptions } from './types/cko-payment.type';
 import { randomUUID } from 'crypto';
 import { isMethodAutoCaptured } from '@app/helpers/method-auto-capture.helper';
 import { convertPaymentMethodFromCkoFormat } from '@app/helpers/method-name.helper';
-import { buildRedirectMerchantUrl, populateInterfaceInteraction } from './helper.service';
+import { buildRedirectMerchantUrl, ensurePaymentMethodTypes, populateInterfaceInteraction } from './helper.service';
 import { CkoPaymentSessionStatus } from '@app/clients/types/payment-session.type';
 
 export class CkoPaymentService {
@@ -55,6 +56,16 @@ export class CkoPaymentService {
     this.createPaymentSessionConverter = opts.createPaymentSessionConverter;
     this.submitPaymentSessionConverter = opts.submitPaymentSessionConverter;
     this.notificationConverter = opts.notificationConverter;
+  }
+
+  /**
+   * Handles a transaction request (POST /operations/transactions).
+   *
+   * TODO: pending implementation is the MIT (merchant-initiated) charge using the SPM token.
+   */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  public async handleTransaction(_transactionDraft: TransactionDraftDTO): Promise<TransactionResponseDTO> {
+    throw new NotImplementedError('Recurring transactions are not implemented by the Checkout.com connector yet');
   }
 
   /**
@@ -175,12 +186,12 @@ export class CkoPaymentService {
 
     try {
       const ckoResponse = await getCkoApiClient().paymentSessions.createPaymentSession(ckoRequest);
-      const interfaceInteraction = populateInterfaceInteraction({
+      const interfaceInteraction = await populateInterfaceInteraction({
         interactionId: randomUUID(),
         type: 'CreatePaymentSession',
         createdAt: new Date().toISOString(),
-        request: JSON.stringify(ckoRequest),
-        response: JSON.stringify(ckoResponse),
+        request: ckoRequest,
+        response: ckoResponse,
       });
 
       await this.ctPaymentService.updatePayment({
@@ -226,12 +237,12 @@ export class CkoPaymentService {
       const response = this.submitPaymentSessionConverter.convertResponse({ responseData: ckoResponse, payment });
       const transactionType = isMethodAutoCaptured(ckoResponse.type) ? 'Charge' : 'Authorization';
       const paymentMethodType = convertPaymentMethodFromCkoFormat(ckoResponse.type);
-      const interfaceInteraction = populateInterfaceInteraction({
+      const interfaceInteraction = await populateInterfaceInteraction({
         interactionId: randomUUID(),
         type: 'SubmitPaymentSession',
         createdAt: new Date().toISOString(),
-        request: JSON.stringify(ckoRequest),
-        response: JSON.stringify(ckoResponse),
+        request: ckoRequest,
+        response: ckoResponse,
       });
 
       const updatedPayment = await this.ctPaymentService.updatePayment({
@@ -289,11 +300,11 @@ export class CkoPaymentService {
       const ckoPayment = await getCkoApiClient().payments.getPayment(opts.ckoPaymentId);
       const methodType = ckoPayment.source?.type || 'unknown';
       const transactionType = isMethodAutoCaptured(methodType) ? 'Charge' : 'Authorization';
-      const interfaceInteraction = populateInterfaceInteraction({
+      const interfaceInteraction = await populateInterfaceInteraction({
         interactionId: randomUUID(),
         type: 'ConfirmPaymentSession',
         createdAt: new Date().toISOString(),
-        request: JSON.stringify({ ckoPaymentId: opts.ckoPaymentId, isSuccess: opts.isSuccess }),
+        request: { ckoPaymentId: opts.ckoPaymentId, isSuccess: opts.isSuccess },
       });
 
       const updatedPayment = await this.ctPaymentService.updatePayment({
@@ -340,11 +351,16 @@ export class CkoPaymentService {
     try {
       const updateData = await this.notificationConverter.convert(opts);
 
-      const interfaceInteraction = populateInterfaceInteraction({
+      // The card details custom fields need their type; without it they are left out so the webhook still gets processed
+      if (updateData.paymentMethodInfo?.custom && !(await ensurePaymentMethodTypes())) {
+        updateData.paymentMethodInfo = { ...updateData.paymentMethodInfo, custom: undefined };
+      }
+
+      const interfaceInteraction = await populateInterfaceInteraction({
         interactionId: randomUUID(),
         type: 'Notification',
         createdAt: new Date().toISOString(),
-        request: JSON.stringify({ event: opts.event }),
+        request: { event: opts.event },
       });
 
       const updatedPayment = await this.ctPaymentService.updatePayment({
@@ -364,8 +380,7 @@ export class CkoPaymentService {
       });
 
       // Save payment method if required
-      const storePaymentMethod = await this.shouldStorePaymentMethod(updateData);
-      await this.savePaymentMethod(updatedPayment, storePaymentMethod);
+      await this.savePaymentMethod(updatedPayment, updateData.storePaymentMethod === true);
     } catch (e) {
       if (e instanceof UnsupportedNotificationError) {
         log.info('Unsupported notification received', { notification: JSON.stringify(opts.event) });
@@ -419,16 +434,6 @@ export class CkoPaymentService {
 
     // Neither customer nor anonymous
     return this.ctPaymentService.createPayment(paymentData);
-  }
-
-  /**
-   * Checks if the payment method should be stored based on notification update data
-   *
-   * @param updateData - The notification update payment data
-   * @returns True if the payment method should be stored, false otherwise
-   */
-  private shouldStorePaymentMethod(updateData: NotificationUpdatePayment): boolean {
-    return updateData.paymentMethodInfo?.custom?.fields?.storePaymentMethod === true;
   }
 
   /**

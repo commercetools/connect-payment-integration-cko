@@ -132,12 +132,12 @@ export class CkoStoredPaymentMethodService {
     try {
       ckoResponse = await getCkoApiClient().payments.createPayment(ckoRequest);
 
-      const interfaceInteraction = populateInterfaceInteraction({
+      const interfaceInteraction = await populateInterfaceInteraction({
         interactionId: randomUUID(),
         type: 'ProcessStoredPayment',
         createdAt: new Date().toISOString(),
-        request: JSON.stringify(ckoRequest),
-        response: JSON.stringify(ckoResponse),
+        request: ckoRequest,
+        response: ckoResponse,
       });
 
       const updatedPayment = await this.ctPaymentService.updatePayment({

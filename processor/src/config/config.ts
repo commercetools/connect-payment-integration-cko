@@ -3,7 +3,8 @@ import { Cart, Order } from '@commercetools/connect-payments-sdk';
 import { Value } from '@sinclair/typebox/value';
 import jsonata from 'jsonata';
 import { getCkoConfigKeyFromContext } from '@lib/fastify/context/context';
-import { AppConfig, AppConfigSchema, CkoConfig } from './types/config.type';
+import { resolveCkoBaseUrls, CkoBaseUrls } from '@app/clients/cko-hosts';
+import { AppConfig, AppConfigSchema, CkoChannelConfig, CkoConfig } from './types/config.type';
 
 /**
  * Parse and validate JSON from environment variable
@@ -22,7 +23,7 @@ function parseJsonEnv<T>(key: string): T {
   try {
     return JSON.parse(raw);
   } catch (error) {
-    throw new Error(`Invalid JSON format in environment variable ${key}: ${error}`);
+    throw new Error(`Invalid JSON format in environment variable ${key}: ${error}`, { cause: error });
   }
 }
 
@@ -38,6 +39,7 @@ function parseJsonEnv<T>(key: string): T {
  * - CTP_AUTH_URL: CommerceTools OAuth URL
  * - CTP_API_URL: CommerceTools API URL
  * - CTP_SESSION_URL: CommerceTools session service URL
+ * - CTP_CHECKOUT_URL: CommerceTools checkout service URL (default: https://checkout.europe-west1.gcp.commercetools.com)
  * - HEALTH_CHECK_TIMEOUT: Health check timeout in ms (default: 5000)
  * - LOGGER_LEVEL: Log level (default: 'info')
  * - MERCHANT_RETURN_URL: Post-payment redirect URL
@@ -57,6 +59,7 @@ function loadConfig(): AppConfig {
     authUrl: process.env.CTP_AUTH_URL,
     apiUrl: process.env.CTP_API_URL,
     sessionUrl: process.env.CTP_SESSION_URL,
+    checkoutUrl: process.env.CTP_CHECKOUT_URL || 'https://checkout.europe-west1.gcp.commercetools.com',
 
     // Application Configuration
     healthCheckTimeout: parseInt(process.env.HEALTH_CHECK_TIMEOUT || '5000'),
@@ -80,7 +83,22 @@ function loadConfig(): AppConfig {
   }
 
   // Decode with defaults applied
-  return Value.Decode(AppConfigSchema, rawConfig);
+  const decoded = Value.Decode(AppConfigSchema, rawConfig);
+
+  // Fail fast on invalid client IDs / host overrides for every channel
+  for (const channel of [decoded.ckoConfig.default, ...(decoded.ckoConfig.channels ?? [])]) {
+    try {
+      resolveCkoBaseUrls({ environment: decoded.ckoEnvironment, ...pickHostOptions(channel) });
+    } catch (error) {
+      throw new Error(`Invalid CKO_CONFIG for channel "${channel.key}": ${(error as Error).message}`, { cause: error });
+    }
+  }
+
+  return decoded;
+}
+
+function pickHostOptions(channel: CkoChannelConfig) {
+  return { clientId: channel.clientId, apiBaseUrl: channel.apiBaseUrl, accessBaseUrl: channel.accessBaseUrl };
 }
 
 let config: AppConfig;
@@ -101,6 +119,8 @@ export const getConfig = () => {
     getPublicKey,
     getSecretKey,
     getHmacKey,
+    getApiBaseUrl,
+    getAccessBaseUrl,
     getCaptureDelayHours,
     getEnableThreeDS,
     getChannelKey,
@@ -229,6 +249,33 @@ function getHmacKey(): string {
 
   const channel = cko.channels?.find((c) => c.key === key);
   return channel?.hmacKey || cko.default.hmacKey;
+}
+
+/**
+ * Resolve Checkout.com base URLs (MSSD aware) for the current channel.
+ *
+ * A channel found in the context uses only its own client ID / overrides; the default channel is used
+ * when there is no channel key or no matching channel.
+ */
+function resolveBaseUrls(): CkoBaseUrls {
+  const key = getCkoConfigKeyFromContext();
+  const cko = config.ckoConfig;
+  const channel = key ? cko.channels?.find((c) => c.key === key) : undefined;
+  return resolveCkoBaseUrls({ environment: config.ckoEnvironment, ...pickHostOptions(channel ?? cko.default) });
+}
+
+/**
+ * Get Checkout.com API base URL for current channel (merchant-specific host when a client ID is configured)
+ */
+function getApiBaseUrl(): string {
+  return resolveBaseUrls().apiBaseUrl;
+}
+
+/**
+ * Get Checkout.com Access (OAuth) base URL for current channel
+ */
+function getAccessBaseUrl(): string {
+  return resolveBaseUrls().accessBaseUrl;
 }
 
 /**

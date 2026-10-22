@@ -1,16 +1,16 @@
 import { GetStoredPaymentMethodsConverter } from '../../../src/services/converters/get-stored-payment-methods.converter';
 import { PaymentMethod } from '@commercetools/connect-payments-sdk';
 import { CkoInstrument } from '../../../src/clients/types/instrument.type';
-import { beforeEach, describe, expect, jest, test } from '@jest/globals';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
 
-jest.mock('@lib/logger', () => ({
+vi.mock('@lib/logger', () => ({
   log: {
-    warn: jest.fn(),
+    warn: vi.fn(),
   },
 }));
 
-jest.mock('../../../src/services/converters/helper.converter', () => ({
-  convertCardBrand: jest.fn((brand: string) => `Converted ${brand}`),
+vi.mock('../../../src/services/converters/helper.converter', () => ({
+  convertCardBrand: vi.fn((brand: string) => `Converted ${brand}`),
 }));
 
 describe('GetStoredPaymentMethodsConverter', () => {
@@ -18,7 +18,7 @@ describe('GetStoredPaymentMethodsConverter', () => {
 
   beforeEach(() => {
     converter = new GetStoredPaymentMethodsConverter();
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('convert', () => {

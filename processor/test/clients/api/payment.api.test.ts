@@ -1,4 +1,5 @@
-import nock from 'nock';
+import { http, HttpResponse } from 'msw';
+import { setupServer } from 'msw/node';
 import { PaymentApi } from '../../../src/clients/api/payment.api';
 import {
   CkoPaymentRequest,
@@ -13,9 +14,9 @@ import {
   CkoRefundPaymentRequest,
   CkoRefundPaymentResponse,
 } from '../../../src/clients/types/payment.type';
-import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
-jest.mock('../../../src/config/config', () => {
+vi.mock('../../../src/config/config', () => {
   const mockConfigData = {
     projectKey: 'test-project',
     clientId: 'test-client-id',
@@ -25,6 +26,7 @@ jest.mock('../../../src/config/config', () => {
     authUrl: 'https://test.auth.url',
     apiUrl: 'https://test.api.url',
     sessionUrl: 'https://test.session.url',
+    checkoutUrl: 'https://test.checkout.url',
     healthCheckTimeout: 5000,
     loggerLevel: 'info',
     merchantReturnUrl: 'https://test.return.url',
@@ -38,39 +40,50 @@ jest.mock('../../../src/config/config', () => {
         hmacKey: 'test-hmac-key',
       },
     },
-    getChannelId: jest.fn(() => 'test-channel-id'),
-    getPublicKey: jest.fn(() => 'test-public-key'),
-    getSecretKey: jest.fn(() => 'test-secret-key'),
-    getHmacKey: jest.fn(() => 'test-hmac-key'),
-    getCaptureDelayHours: jest.fn(() => undefined),
-    getEnableThreeDS: jest.fn(() => true),
-    getChannelKey: jest.fn(() => Promise.resolve(undefined)),
-    isStoredPaymentMethodsEnabled: jest.fn(() => true),
-    getPaymentInterface: jest.fn(() => 'checkout-cko'),
-    getInterfaceAccount: jest.fn(() => 'test-channel-id'),
-    isSaveInterfaceInteractions: jest.fn(() => true),
-    isSavePaymentMethodAdditionalDetails: jest.fn(() => true),
-    hasMultiChannelConfig: jest.fn(() => false),
+    getChannelId: vi.fn(() => 'test-channel-id'),
+    getPublicKey: vi.fn(() => 'test-public-key'),
+    getSecretKey: vi.fn(() => 'test-secret-key'),
+    getHmacKey: vi.fn(() => 'test-hmac-key'),
+    getApiBaseUrl: vi.fn(() => 'https://api.sandbox.checkout.com'),
+    getAccessBaseUrl: vi.fn(() => 'https://access.sandbox.checkout.com'),
+    getCaptureDelayHours: vi.fn(() => undefined),
+    getEnableThreeDS: vi.fn(() => true),
+    getChannelKey: vi.fn(() => Promise.resolve(undefined)),
+    isStoredPaymentMethodsEnabled: vi.fn(() => true),
+    getPaymentInterface: vi.fn(() => 'checkout-cko'),
+    getInterfaceAccount: vi.fn(() => 'test-channel-id'),
+    isSaveInterfaceInteractions: vi.fn(() => true),
+    isSavePaymentMethodAdditionalDetails: vi.fn(() => true),
+    hasMultiChannelConfig: vi.fn(() => false),
   };
 
   return {
     config: mockConfigData,
-    getConfig: jest.fn(() => mockConfigData),
-    hasMultiChannelConfig: jest.fn(() => false),
+    getConfig: vi.fn(() => mockConfigData),
+    hasMultiChannelConfig: vi.fn(() => false),
   };
 });
+
+const server = setupServer();
 
 describe('PaymentApi', () => {
   let api: PaymentApi;
   const baseUrl = 'https://api.sandbox.checkout.com';
 
+  beforeAll(() => {
+    server.listen({ onUnhandledRequest: 'error' });
+  });
+
   beforeEach(() => {
     api = new PaymentApi();
-    nock.cleanAll();
   });
 
   afterEach(() => {
-    nock.cleanAll();
+    server.resetHandlers();
+  });
+
+  afterAll(() => {
+    server.close();
   });
 
   describe('createPayment', () => {
@@ -82,7 +95,12 @@ describe('PaymentApi', () => {
         status: 'Authorized',
       } as unknown as CkoPaymentResponse;
 
-      nock(baseUrl).post('/payments').matchHeader('Authorization', 'Bearer test-secret-key').reply(200, mockResponse);
+      server.use(
+        http.post(`${baseUrl}/payments`, ({ request }) => {
+          expect(request.headers.get('Authorization')).toBe('Bearer test-secret-key');
+          return HttpResponse.json(mockResponse);
+        }),
+      );
 
       // Act
       const result = await api.createPayment(mockRequest);
@@ -94,7 +112,7 @@ describe('PaymentApi', () => {
     it('should throw CkoApiError on error', async () => {
       // Arrange
       const mockRequest = {} as unknown as CkoPaymentRequest;
-      nock(baseUrl).post('/payments').reply(422, { error: 'Invalid data' });
+      server.use(http.post(`${baseUrl}/payments`, () => HttpResponse.json({ error: 'Invalid data' }, { status: 422 })));
 
       // Act & Assert
       await expect(api.createPayment(mockRequest)).rejects.toMatchObject({
@@ -114,10 +132,12 @@ describe('PaymentApi', () => {
         currency: 'USD',
       } as unknown as CkoGetPaymentResponse;
 
-      nock(baseUrl)
-        .get(`/payments/${paymentId}`)
-        .matchHeader('Authorization', 'Bearer test-secret-key')
-        .reply(200, mockResponse);
+      server.use(
+        http.get(`${baseUrl}/payments/${paymentId}`, ({ request }) => {
+          expect(request.headers.get('Authorization')).toBe('Bearer test-secret-key');
+          return HttpResponse.json(mockResponse);
+        }),
+      );
 
       // Act
       const result = await api.getPayment(paymentId);
@@ -129,7 +149,9 @@ describe('PaymentApi', () => {
     it('should throw CkoApiError on 404', async () => {
       // Arrange
       const paymentId = 'pay_test123';
-      nock(baseUrl).get(`/payments/${paymentId}`).reply(404, { error: 'Not found' });
+      server.use(
+        http.get(`${baseUrl}/payments/${paymentId}`, () => HttpResponse.json({ error: 'Not found' }, { status: 404 })),
+      );
 
       // Act & Assert
       await expect(api.getPayment(paymentId)).rejects.toMatchObject({
@@ -149,10 +171,12 @@ describe('PaymentApi', () => {
         reference: 'void-123',
       } as unknown as CkoVoidPaymentResponse;
 
-      nock(baseUrl)
-        .post(`/payments/${paymentId}/voids`)
-        .matchHeader('Authorization', 'Bearer test-secret-key')
-        .reply(200, mockResponse);
+      server.use(
+        http.post(`${baseUrl}/payments/${paymentId}/voids`, ({ request }) => {
+          expect(request.headers.get('Authorization')).toBe('Bearer test-secret-key');
+          return HttpResponse.json(mockResponse);
+        }),
+      );
 
       // Act
       const result = await api.voidPayment(paymentId, mockRequest);
@@ -165,7 +189,11 @@ describe('PaymentApi', () => {
       // Arrange
       const paymentId = 'pay_test123';
       const mockRequest = {} as unknown as CkoVoidPaymentRequest;
-      nock(baseUrl).post(`/payments/${paymentId}/voids`).reply(422, { error: 'Invalid data' });
+      server.use(
+        http.post(`${baseUrl}/payments/${paymentId}/voids`, () =>
+          HttpResponse.json({ error: 'Invalid data' }, { status: 422 }),
+        ),
+      );
 
       // Act & Assert
       await expect(api.voidPayment(paymentId, mockRequest)).rejects.toMatchObject({
@@ -185,10 +213,12 @@ describe('PaymentApi', () => {
         reference: 'reverse-123',
       } as unknown as CkoReversePaymentResponse;
 
-      nock(baseUrl)
-        .post(`/payments/${paymentId}/reversals`)
-        .matchHeader('Authorization', 'Bearer test-secret-key')
-        .reply(200, mockResponse);
+      server.use(
+        http.post(`${baseUrl}/payments/${paymentId}/reversals`, ({ request }) => {
+          expect(request.headers.get('Authorization')).toBe('Bearer test-secret-key');
+          return HttpResponse.json(mockResponse);
+        }),
+      );
 
       // Act
       const result = await api.reversePayment(paymentId, mockRequest);
@@ -201,7 +231,11 @@ describe('PaymentApi', () => {
       // Arrange
       const paymentId = 'pay_test123';
       const mockRequest = {} as unknown as CkoReversePaymentRequest;
-      nock(baseUrl).post(`/payments/${paymentId}/reversals`).reply(422, { error: 'Invalid data' });
+      server.use(
+        http.post(`${baseUrl}/payments/${paymentId}/reversals`, () =>
+          HttpResponse.json({ error: 'Invalid data' }, { status: 422 }),
+        ),
+      );
 
       // Act & Assert
       await expect(api.reversePayment(paymentId, mockRequest)).rejects.toMatchObject({
@@ -221,10 +255,12 @@ describe('PaymentApi', () => {
         reference: 'capture-123',
       } as unknown as CkoCapturePaymentResponse;
 
-      nock(baseUrl)
-        .post(`/payments/${paymentId}/captures`)
-        .matchHeader('Authorization', 'Bearer test-secret-key')
-        .reply(200, mockResponse);
+      server.use(
+        http.post(`${baseUrl}/payments/${paymentId}/captures`, ({ request }) => {
+          expect(request.headers.get('Authorization')).toBe('Bearer test-secret-key');
+          return HttpResponse.json(mockResponse);
+        }),
+      );
 
       // Act
       const result = await api.capturePayment(paymentId, mockRequest);
@@ -237,7 +273,11 @@ describe('PaymentApi', () => {
       // Arrange
       const paymentId = 'pay_test123';
       const mockRequest = {} as unknown as CkoCapturePaymentRequest;
-      nock(baseUrl).post(`/payments/${paymentId}/captures`).reply(422, { error: 'Invalid data' });
+      server.use(
+        http.post(`${baseUrl}/payments/${paymentId}/captures`, () =>
+          HttpResponse.json({ error: 'Invalid data' }, { status: 422 }),
+        ),
+      );
 
       // Act & Assert
       await expect(api.capturePayment(paymentId, mockRequest)).rejects.toMatchObject({
@@ -257,10 +297,12 @@ describe('PaymentApi', () => {
         reference: 'refund-123',
       } as unknown as CkoRefundPaymentResponse;
 
-      nock(baseUrl)
-        .post(`/payments/${paymentId}/refunds`)
-        .matchHeader('Authorization', 'Bearer test-secret-key')
-        .reply(200, mockResponse);
+      server.use(
+        http.post(`${baseUrl}/payments/${paymentId}/refunds`, ({ request }) => {
+          expect(request.headers.get('Authorization')).toBe('Bearer test-secret-key');
+          return HttpResponse.json(mockResponse);
+        }),
+      );
 
       // Act
       const result = await api.refundPayment(paymentId, mockRequest);
@@ -273,7 +315,11 @@ describe('PaymentApi', () => {
       // Arrange
       const paymentId = 'pay_test123';
       const mockRequest = {} as unknown as CkoRefundPaymentRequest;
-      nock(baseUrl).post(`/payments/${paymentId}/refunds`).reply(422, { error: 'Invalid data' });
+      server.use(
+        http.post(`${baseUrl}/payments/${paymentId}/refunds`, () =>
+          HttpResponse.json({ error: 'Invalid data' }, { status: 422 }),
+        ),
+      );
 
       // Act & Assert
       await expect(api.refundPayment(paymentId, mockRequest)).rejects.toMatchObject({

@@ -1,5 +1,5 @@
 import { PaymentComponentsConverter } from '../../../src/services/converters/payment-components.converter';
-import { beforeEach, describe, expect, test } from '@jest/globals';
+import { beforeEach, describe, expect, test } from 'vitest';
 describe('PaymentComponentsConverter', () => {
   let converter: PaymentComponentsConverter;
 
@@ -15,6 +15,12 @@ describe('PaymentComponentsConverter', () => {
       expect(result.dropins).toEqual([]);
       expect(result.components).toBeDefined();
       expect(Array.isArray(result.components)).toBe(true);
+    });
+
+    test('should return empty express array', () => {
+      const result = converter.convertResponse();
+
+      expect(result.express).toEqual([]);
     });
 
     test('should return empty dropins array', () => {

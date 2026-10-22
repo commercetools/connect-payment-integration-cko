@@ -1,5 +1,6 @@
-import { describe, test, expect, afterEach, jest, beforeEach } from '@jest/globals';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { SessionAuthentication, SessionPrincipal } from '@commercetools/connect-payments-sdk';
+import { requestContext } from '@fastify/request-context';
 import * as Context from '../../../../src/libs/fastify/context/context';
 
 describe('context', () => {
@@ -15,19 +16,18 @@ describe('context', () => {
   const mockSessionAuthentication: SessionAuthentication = new SessionAuthentication(sessionId, principal);
 
   beforeEach(() => {
-    jest.setTimeout(10000);
-    jest.resetAllMocks();
+    vi.resetAllMocks();
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   test('getCtSessionIdFromContext', async () => {
     const mockRequestContext = {
       authentication: mockSessionAuthentication,
     };
-    jest.spyOn(Context, 'getRequestContext').mockReturnValue(mockRequestContext);
+    vi.spyOn(requestContext, 'get').mockReturnValue(mockRequestContext);
     const result = Context.getCtSessionIdFromContext();
     expect(result).toStrictEqual(sessionId);
   });
@@ -36,7 +36,7 @@ describe('context', () => {
     const mockRequestContext = {
       authentication: mockSessionAuthentication,
     };
-    jest.spyOn(Context, 'getRequestContext').mockReturnValue(mockRequestContext);
+    vi.spyOn(requestContext, 'get').mockReturnValue(mockRequestContext);
     const result = Context.getAllowedPaymentMethodsFromContext();
     expect(result).toHaveLength(0);
   });
@@ -45,7 +45,7 @@ describe('context', () => {
     const mockRequestContext = {
       authentication: mockSessionAuthentication,
     };
-    jest.spyOn(Context, 'getRequestContext').mockReturnValue(mockRequestContext);
+    vi.spyOn(requestContext, 'get').mockReturnValue(mockRequestContext);
     const result = Context.getCartIdFromContext();
     expect(result).toStrictEqual('123456');
   });
@@ -54,7 +54,7 @@ describe('context', () => {
     const mockRequestContext = {
       authentication: mockSessionAuthentication,
     };
-    jest.spyOn(Context, 'getRequestContext').mockReturnValue(mockRequestContext);
+    vi.spyOn(requestContext, 'get').mockReturnValue(mockRequestContext);
     const result = Context.getMerchantReturnUrlFromContext();
     expect(result).toStrictEqual('https://merchant.return.url');
   });
@@ -63,7 +63,7 @@ describe('context', () => {
     const mockRequestContext = {
       authentication: mockSessionAuthentication,
     };
-    jest.spyOn(Context, 'getRequestContext').mockReturnValue(mockRequestContext);
+    vi.spyOn(requestContext, 'get').mockReturnValue(mockRequestContext);
     const result = Context.getProcessorUrlFromContext();
     expect(result).toStrictEqual('http://127.0.0.1');
   });
@@ -76,7 +76,7 @@ describe('context', () => {
     const mockRequestContext = {
       authentication: new SessionAuthentication(sessionId, principalWithTransactionId),
     };
-    jest.spyOn(Context, 'getRequestContext').mockReturnValue(mockRequestContext);
+    vi.spyOn(requestContext, 'get').mockReturnValue(mockRequestContext);
     const result = Context.getCheckoutTransactionItemIdFromContext();
     expect(result).toStrictEqual('transaction-item-123');
   });
@@ -89,7 +89,7 @@ describe('context', () => {
     const mockRequestContext = {
       authentication: new SessionAuthentication(sessionId, principalWithOrderNumber),
     };
-    jest.spyOn(Context, 'getRequestContext').mockReturnValue(mockRequestContext);
+    vi.spyOn(requestContext, 'get').mockReturnValue(mockRequestContext);
     const result = Context.getFutureOrderNumberFromContext();
     expect(result).toStrictEqual('ORDER-2024-001');
   });
@@ -99,7 +99,7 @@ describe('context', () => {
       authentication: mockSessionAuthentication,
       ckoConfigKey: 'custom-cko-key',
     };
-    jest.spyOn(Context, 'getRequestContext').mockReturnValue(mockRequestContext);
+    vi.spyOn(requestContext, 'get').mockReturnValue(mockRequestContext);
     const result = Context.getCkoConfigKeyFromContext();
     expect(result).toStrictEqual('custom-cko-key');
   });
@@ -108,7 +108,7 @@ describe('context', () => {
     const mockRequestContext = {
       authentication: mockSessionAuthentication,
     };
-    jest.spyOn(Context, 'getRequestContext').mockReturnValue(mockRequestContext);
+    vi.spyOn(requestContext, 'get').mockReturnValue(mockRequestContext);
     const result = Context.getCkoConfigKeyFromContext();
     expect(result).toBeUndefined();
   });

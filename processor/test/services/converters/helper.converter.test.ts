@@ -5,12 +5,12 @@ import {
   convertCartItems,
 } from '../../../src/services/converters/helper.converter';
 import { Address, Cart, Payment } from '@commercetools/connect-payments-sdk';
-import { beforeEach, describe, expect, jest, test } from '@jest/globals';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { getConfig } from '../../../src/config/config';
 
-jest.mock('../../../src/config/config');
+vi.mock('../../../src/config/config');
 
-const mockGetConfig = jest.mocked(getConfig);
+const mockGetConfig = vi.mocked(getConfig);
 
 describe('helper.converter', () => {
   describe('convertCardBrand', () => {
@@ -185,7 +185,7 @@ describe('helper.converter', () => {
 
   describe('convertEnableCapture', () => {
     beforeEach(() => {
-      jest.clearAllMocks();
+      vi.clearAllMocks();
     });
 
     test('should return { capture: false } when captureDelayHours is null', () => {
@@ -240,7 +240,7 @@ describe('helper.converter', () => {
 
     test('should return delayed capture with timestamp when captureDelayHours is positive', () => {
       const mockDate = new Date('2024-01-15T10:00:00.000Z');
-      jest.spyOn(global.Date, 'now').mockReturnValue(mockDate.getTime());
+      vi.spyOn(global.Date, 'now').mockReturnValue(mockDate.getTime());
 
       mockGetConfig.mockReturnValue({
         getCaptureDelayHours: () => 24,
@@ -255,7 +255,7 @@ describe('helper.converter', () => {
 
     test('should calculate correct delayed capture for 1 hour', () => {
       const mockDate = new Date('2024-01-15T12:00:00.000Z');
-      jest.spyOn(global.Date, 'now').mockReturnValue(mockDate.getTime());
+      vi.spyOn(global.Date, 'now').mockReturnValue(mockDate.getTime());
 
       mockGetConfig.mockReturnValue({
         getCaptureDelayHours: () => 1,
@@ -269,7 +269,7 @@ describe('helper.converter', () => {
 
     test('should calculate correct delayed capture for 168 hours (7 days)', () => {
       const mockDate = new Date('2024-01-01T00:00:00.000Z');
-      jest.spyOn(global.Date, 'now').mockReturnValue(mockDate.getTime());
+      vi.spyOn(global.Date, 'now').mockReturnValue(mockDate.getTime());
 
       mockGetConfig.mockReturnValue({
         getCaptureDelayHours: () => 168,

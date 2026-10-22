@@ -134,7 +134,8 @@ export const operationsRoute = async (fastify: FastifyInstance, opts: FastifyPlu
       },
     },
     async (request, reply) => {
-      return reply.status(201).send();
+      const result = await opts.paymentService.handleTransaction(request.body);
+      return reply.status(201).send(result);
     },
   );
 };

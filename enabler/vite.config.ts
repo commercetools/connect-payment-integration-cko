@@ -1,10 +1,12 @@
 import { resolve } from "path";
 import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
 import cssInjectedByJsPlugin from "vite-plugin-css-injected-by-js";
 import { readFileSync } from "fs";
 
 export default defineConfig({
   plugins: [
+    react(),
     cssInjectedByJsPlugin({
       injectCodeFunction: function injectCodeCustomRunTimeFunction(cssCode: string, options) {
         try {
@@ -22,6 +24,18 @@ export default defineConfig({
         }
       },
     }),
+    {
+      // The dev server root serves the commercestore instead of a root index.html.
+      name: "serve-commercestore-at-root",
+      configureServer(server) {
+        server.middlewares.use((req, _res, next) => {
+          if (req.url === "/" || req.url?.startsWith("/?")) {
+            req.url = "/dev-utils/commercestore/index.html" + req.url.slice(1);
+          }
+          next();
+        });
+      },
+    },
     {
       name: "serve-well-known",
       configureServer(server) {
@@ -45,9 +59,6 @@ export default defineConfig({
       },
     },
   ],
-  server: {
-    allowedHosts: ["7838b580e83a.ngrok.app"],
-  },
   build: {
     outDir: resolve(__dirname, "public"),
     lib: {
