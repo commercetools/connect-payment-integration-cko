@@ -14,6 +14,7 @@ import {
   PaymentComponentBuilder,
   PaymentDropinBuilder,
   PaymentEnabler,
+  PaymentExpressBuilder,
   PaymentResult,
   StoredComponentBuilder,
 } from "./payment-enabler";
@@ -259,6 +260,10 @@ export class CkoPaymentEnabler implements PaymentEnabler {
       onError: this.onError,
       getPaymentReference: () => this.currentPaymentReference,
     });
+  }
+
+  async createExpressBuilder(_type: string): Promise<PaymentExpressBuilder | never> {
+    throw new Error("Express checkout is not supported by the Checkout.com connector");
   }
 
   async isStoredPaymentMethodsEnabled(): Promise<boolean> {

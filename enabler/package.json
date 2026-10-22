@@ -6,27 +6,37 @@
   "scripts": {
     "dev": "vite --port 3000",
     "start": "serve public -l 8080 --cors",
-    "test": "jest --detectOpenHandles",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "build": "tsc && vite build",
     "preview": "vite preview",
     "serve": "npm run build && serve public -l 3000 --cors"
   },
   "dependencies": {
-    "@checkout.com/checkout-web-components": "1.7.0",
-    "serve": "14.2.5"
+    "@checkout.com/checkout-web-components": "1.14.0",
+    "serve": "14.2.6"
   },
   "devDependencies": {
-    "@types/node": "24.10.1",
-    "jest": "30.2.0",
-    "sass": "1.94.2",
-    "ts-jest": "29.4.6",
-    "ts-node": "10.9.2",
-    "typescript": "5.9.3",
-    "vite": "7.2.6",
-    "vite-plugin-css-injected-by-js": "3.5.2"
+    "@types/node": "24.19.2",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.2",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "sass": "1.106.1",
+    "typescript": "6.0.3",
+    "vite": "8.3.5",
+    "vite-plugin-css-injected-by-js": "5.0.2",
+    "vitest": "5.0.3"
   },
   "overrides": {
-    "path-to-regexp": "3.3.0",
-    "esbuild": "^0.24.0"
+    "compression": "^1.8.2"
+  },
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "allowScripts": {
+    "@parcel/watcher@2.6.0": true,
+    "fsevents@2.3.3": true
   }
 }

@@ -1,4 +1,3 @@
-import { getConfig } from '@app/config/config';
 import { ApiResources } from '../types/api.type';
 import {
   PaymentSessionRequest,
@@ -14,7 +13,7 @@ export class PaymentSessionApi extends CkoBaseApi {
   }
 
   public async createPaymentSession(request: PaymentSessionRequest): Promise<PaymentSessionResponse> {
-    const url = this.buildResourceUrl(getConfig().ckoEnvironment, ApiResources.PAYMENT_SESSIONS);
+    const url = this.buildResourceUrl(ApiResources.PAYMENT_SESSIONS);
 
     return await this.executeCall<PaymentSessionResponse>({
       method: 'post',
@@ -27,7 +26,7 @@ export class PaymentSessionApi extends CkoBaseApi {
     id: string,
     request: SubmitPaymentSessionRequest,
   ): Promise<SubmitPaymentSessionResponse> {
-    const url = this.buildResourceUrl(getConfig().ckoEnvironment, ApiResources.SUBMIT_PAYMENT_SESSIONS, id);
+    const url = this.buildResourceUrl(ApiResources.SUBMIT_PAYMENT_SESSIONS, id);
 
     return await this.executeCall<SubmitPaymentSessionResponse>({
       method: 'post',

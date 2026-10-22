@@ -8,6 +8,7 @@ import {
   Cart,
   Payment,
 } from '@commercetools/connect-payments-sdk';
+import { TransactionDraftDTO, TransactionResponseDTO } from '@app/dtos/operations/transaction.dto';
 import { ConfigResponse, StatusResponse } from './types/operation.type';
 
 import { SupportedPaymentComponentsSchemaDTO } from '@app/dtos/operations/payment-componets.dto';
@@ -30,7 +31,7 @@ import { SubmitPaymentSessionConverter } from './converters/submit-payment-sessi
 import { log } from '@lib/logger';
 import { CkoWebhookEvent } from '@app/clients/types/webhook.type';
 import { NotificationConverter } from './converters/notification.converter';
-import { UnsupportedNotificationError } from '@app/errors/cko-api.error';
+import { NotImplementedError, UnsupportedNotificationError } from '@app/errors/cko-api.error';
 import { CkoPaymentServiceOptions, NotificationUpdatePayment } from './types/cko-payment.type';
 import { randomUUID } from 'crypto';
 import { isMethodAutoCaptured } from '@app/helpers/method-auto-capture.helper';
@@ -55,6 +56,16 @@ export class CkoPaymentService {
     this.createPaymentSessionConverter = opts.createPaymentSessionConverter;
     this.submitPaymentSessionConverter = opts.submitPaymentSessionConverter;
     this.notificationConverter = opts.notificationConverter;
+  }
+
+  /**
+   * Handles a transaction request (POST /operations/transactions).
+   *
+   * TODO: pending implementation is the MIT (merchant-initiated) charge using the SPM token.
+   */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  public async handleTransaction(_transactionDraft: TransactionDraftDTO): Promise<TransactionResponseDTO> {
+    throw new NotImplementedError('Recurring transactions are not implemented by the Checkout.com connector yet');
   }
 
   /**

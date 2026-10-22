@@ -4,11 +4,6 @@ export type ApiRequestConfig = {
   data?: unknown;
 };
 
-export enum ApiBasePath {
-  SANDBOX = 'https://api.sandbox.checkout.com',
-  PRODUCTION = 'https://api.checkout.com',
-}
-
 export enum ApiResources {
   PAYMENT_SESSIONS = '/payment-sessions',
   SUBMIT_PAYMENT_SESSIONS = '/payment-sessions/{resourceId}/submit',

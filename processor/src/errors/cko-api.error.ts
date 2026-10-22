@@ -63,3 +63,15 @@ export class UnsupportedNotificationError extends Errorx {
     });
   }
 }
+
+export class NotImplementedError extends Errorx {
+  constructor(message: string, additionalOpts?: ErrorxAdditionalOpts) {
+    super({
+      code: 'NotImplemented',
+      httpErrorStatus: 501,
+      message,
+      skipLog: true,
+      ...additionalOpts,
+    });
+  }
+}

@@ -7,7 +7,7 @@ import {
   PaymentMethod,
   PaymentMethodPagedQueryResponse,
 } from '@commercetools/connect-payments-sdk';
-import { beforeEach, describe, expect, it, jest } from '@jest/globals';
+import { beforeEach, describe, expect, it, type Mocked, type MockedFunction, vi } from 'vitest';
 import { CkoStoredPaymentMethodService } from '../../src/services/cko-stored-payment-method.service';
 import { getCkoApiClient } from '../../src/clients/cko.client';
 import { CkoApi } from '../../src/clients/api/cko.api';
@@ -19,7 +19,7 @@ import { ProcessStoredPaymentConverter } from '../../src/services/converters/pro
 import { GetStoredPaymentMethodsConverter } from '../../src/services/converters/get-stored-payment-methods.converter';
 import { ProcessStoredPaymentResponseDTO } from '../../src/dtos/stored-payment-methods.dto';
 
-jest.mock('@app/config/config', () => {
+vi.mock('@app/config/config', () => {
   const mockConfigData = {
     projectKey: 'test-project',
     clientId: 'test-client-id',
@@ -29,6 +29,7 @@ jest.mock('@app/config/config', () => {
     authUrl: 'https://test.auth.url',
     apiUrl: 'https://test.api.url',
     sessionUrl: 'https://test.session.url',
+    checkoutUrl: 'https://test.checkout.url',
     healthCheckTimeout: 5000,
     loggerLevel: 'info',
     merchantReturnUrl: 'https://test.return.url',
@@ -42,30 +43,30 @@ jest.mock('@app/config/config', () => {
         hmacKey: 'test-hmac-key',
       },
     },
-    getChannelId: jest.fn(() => 'test-channel-id'),
-    getPublicKey: jest.fn(() => 'test-public-key'),
-    getSecretKey: jest.fn(() => 'test-secret-key'),
-    getHmacKey: jest.fn(() => 'test-hmac-key'),
-    getCaptureDelayHours: jest.fn(() => undefined),
-    getEnableThreeDS: jest.fn(() => true),
-    getChannelKey: jest.fn(() => Promise.resolve(undefined)),
-    isStoredPaymentMethodsEnabled: jest.fn(() => true),
-    getPaymentInterface: jest.fn(() => 'checkout-cko'),
-    getInterfaceAccount: jest.fn(() => 'test-channel-id'),
-    isSaveInterfaceInteractions: jest.fn(() => true),
-    isSavePaymentMethodAdditionalDetails: jest.fn(() => true),
-    hasMultiChannelConfig: jest.fn(() => false),
+    getChannelId: vi.fn(() => 'test-channel-id'),
+    getPublicKey: vi.fn(() => 'test-public-key'),
+    getSecretKey: vi.fn(() => 'test-secret-key'),
+    getHmacKey: vi.fn(() => 'test-hmac-key'),
+    getCaptureDelayHours: vi.fn(() => undefined),
+    getEnableThreeDS: vi.fn(() => true),
+    getChannelKey: vi.fn(() => Promise.resolve(undefined)),
+    isStoredPaymentMethodsEnabled: vi.fn(() => true),
+    getPaymentInterface: vi.fn(() => 'checkout-cko'),
+    getInterfaceAccount: vi.fn(() => 'test-channel-id'),
+    isSaveInterfaceInteractions: vi.fn(() => true),
+    isSavePaymentMethodAdditionalDetails: vi.fn(() => true),
+    hasMultiChannelConfig: vi.fn(() => false),
   };
 
   return {
     config: mockConfigData,
-    getConfig: jest.fn(() => mockConfigData),
-    hasMultiChannelConfig: jest.fn(() => false),
+    getConfig: vi.fn(() => mockConfigData),
+    hasMultiChannelConfig: vi.fn(() => false),
   };
 });
 
-jest.mock('@app/clients/cko.client');
-jest.mock('@lib/fastify/context/context', () => {
+vi.mock('@app/clients/cko.client');
+vi.mock('@lib/fastify/context/context', () => {
   const mockRequestContextData = {
     correlationId: 'test-correlation-id',
     pathTemplate: '/test-path',
@@ -73,36 +74,36 @@ jest.mock('@lib/fastify/context/context', () => {
   };
 
   return {
-    getRequestContext: jest.fn(() => mockRequestContextData),
-    getCtSessionIdFromContext: jest.fn(),
-    getFutureOrderNumberFromContext: jest.fn(),
-    getProcessorUrlFromContext: jest.fn(),
-    getCkoConfigKeyFromContext: jest.fn(),
-    getCartIdFromContext: jest.fn(() => 'cart-id'),
-    getMerchantReturnUrlFromContext: jest.fn(),
+    getRequestContext: vi.fn(() => mockRequestContextData),
+    getCtSessionIdFromContext: vi.fn(),
+    getFutureOrderNumberFromContext: vi.fn(),
+    getProcessorUrlFromContext: vi.fn(),
+    getCkoConfigKeyFromContext: vi.fn(),
+    getCartIdFromContext: vi.fn(() => 'cart-id'),
+    getMerchantReturnUrlFromContext: vi.fn(),
   };
 });
 
 describe('CkoStoredPaymentMethodService', () => {
   const mockCartService = {
-    getCart: jest.fn(),
-  } as unknown as jest.Mocked<CommercetoolsCartService>;
+    getCart: vi.fn(),
+  } as unknown as Mocked<CommercetoolsCartService>;
 
   const mockPaymentService = {
-    createPayment: jest.fn(),
-    getPayment: jest.fn(),
-    updatePayment: jest.fn(),
-  } as unknown as jest.Mocked<CommercetoolsPaymentService>;
+    createPayment: vi.fn(),
+    getPayment: vi.fn(),
+    updatePayment: vi.fn(),
+  } as unknown as Mocked<CommercetoolsPaymentService>;
 
   const mockPaymentMethodService = {
-    find: jest.fn(),
-    get: jest.fn(),
-    delete: jest.fn(),
-  } as unknown as jest.Mocked<CommercetoolsPaymentMethodService>;
+    find: vi.fn(),
+    get: vi.fn(),
+    delete: vi.fn(),
+  } as unknown as Mocked<CommercetoolsPaymentMethodService>;
 
   const mockProcessStoredPaymentConverter = {
-    convertRequest: jest.fn(),
-    convertResponse: jest.fn(),
+    convertRequest: vi.fn(),
+    convertResponse: vi.fn(),
   } as unknown as ProcessStoredPaymentConverter;
 
   const service = new CkoStoredPaymentMethodService({
@@ -115,7 +116,7 @@ describe('CkoStoredPaymentMethodService', () => {
 
   const mockInstrumentApi = new InstrumentApi();
   const mockPaymentApi = new PaymentApi();
-  const mockGetCkoApiClient = getCkoApiClient as jest.MockedFunction<typeof getCkoApiClient>;
+  const mockGetCkoApiClient = getCkoApiClient as MockedFunction<typeof getCkoApiClient>;
   const mockCkoClient = {
     instruments: mockInstrumentApi,
     payments: mockPaymentApi,
@@ -124,7 +125,7 @@ describe('CkoStoredPaymentMethodService', () => {
   mockGetCkoApiClient.mockReturnValue(mockCkoClient);
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('getStoredPaymentMethods', () => {
@@ -154,11 +155,11 @@ describe('CkoStoredPaymentMethodService', () => {
         expiry_year: 2025,
       } as CkoInstrument;
 
-      jest.spyOn(mockCartService, 'getCart').mockResolvedValue(mockCart);
-      jest
-        .spyOn(mockPaymentMethodService, 'find')
-        .mockResolvedValue({ results: mockStoredPaymentMethods } as PaymentMethodPagedQueryResponse);
-      jest.spyOn(mockInstrumentApi, 'getInstrument').mockResolvedValue(mockInstrument);
+      vi.spyOn(mockCartService, 'getCart').mockResolvedValue(mockCart);
+      vi.spyOn(mockPaymentMethodService, 'find').mockResolvedValue({
+        results: mockStoredPaymentMethods,
+      } as PaymentMethodPagedQueryResponse);
+      vi.spyOn(mockInstrumentApi, 'getInstrument').mockResolvedValue(mockInstrument);
 
       // Act
       const result = await service.getStoredPaymentMethods();
@@ -187,8 +188,8 @@ describe('CkoStoredPaymentMethodService', () => {
         customerId: 'customer-id',
       } as Cart;
 
-      jest.spyOn(mockCartService, 'getCart').mockResolvedValue(mockCart);
-      jest.spyOn(mockPaymentMethodService, 'find').mockResolvedValue({
+      vi.spyOn(mockCartService, 'getCart').mockResolvedValue(mockCart);
+      vi.spyOn(mockPaymentMethodService, 'find').mockResolvedValue({
         results: [],
         limit: 20,
         offset: 0,
@@ -235,12 +236,11 @@ describe('CkoStoredPaymentMethodService', () => {
         expiry_year: 2025,
       } as CkoInstrument;
 
-      jest.spyOn(mockCartService, 'getCart').mockResolvedValue(mockCart);
-      jest
-        .spyOn(mockPaymentMethodService, 'find')
-        .mockResolvedValue({ results: mockStoredPaymentMethods } as PaymentMethodPagedQueryResponse);
-      jest
-        .spyOn(mockInstrumentApi, 'getInstrument')
+      vi.spyOn(mockCartService, 'getCart').mockResolvedValue(mockCart);
+      vi.spyOn(mockPaymentMethodService, 'find').mockResolvedValue({
+        results: mockStoredPaymentMethods,
+      } as PaymentMethodPagedQueryResponse);
+      vi.spyOn(mockInstrumentApi, 'getInstrument')
         .mockResolvedValueOnce(mockInstrument)
         .mockRejectedValueOnce(new Error('Instrument not found'));
 
@@ -292,12 +292,12 @@ describe('CkoStoredPaymentMethodService', () => {
         version: 2,
       } as Payment;
 
-      jest.spyOn(mockPaymentService, 'getPayment').mockResolvedValue(mockPayment);
-      jest.spyOn(mockCartService, 'getCart').mockResolvedValue(mockCart);
-      jest.spyOn(mockPaymentMethodService, 'get').mockResolvedValue(mockPaymentMethod);
-      jest.spyOn(mockPaymentService, 'updatePayment').mockResolvedValue(mockUpdatedPayment);
-      jest.spyOn(mockPaymentApi, 'createPayment').mockResolvedValue(mockCkoResponse);
-      jest.spyOn(mockProcessStoredPaymentConverter, 'convertRequest').mockReturnValue({
+      vi.spyOn(mockPaymentService, 'getPayment').mockResolvedValue(mockPayment);
+      vi.spyOn(mockCartService, 'getCart').mockResolvedValue(mockCart);
+      vi.spyOn(mockPaymentMethodService, 'get').mockResolvedValue(mockPaymentMethod);
+      vi.spyOn(mockPaymentService, 'updatePayment').mockResolvedValue(mockUpdatedPayment);
+      vi.spyOn(mockPaymentApi, 'createPayment').mockResolvedValue(mockCkoResponse);
+      vi.spyOn(mockProcessStoredPaymentConverter, 'convertRequest').mockReturnValue({
         amount: 1000,
         currency: 'EUR',
         source: {
@@ -305,7 +305,7 @@ describe('CkoStoredPaymentMethodService', () => {
           id: 'token-1',
         },
       } as CkoPaymentRequest);
-      jest.spyOn(mockProcessStoredPaymentConverter, 'convertResponse').mockReturnValue({
+      vi.spyOn(mockProcessStoredPaymentConverter, 'convertResponse').mockReturnValue({
         status: 'Authorized',
       } as ProcessStoredPaymentResponseDTO);
 
@@ -376,12 +376,12 @@ describe('CkoStoredPaymentMethodService', () => {
         version: 2,
       } as Payment;
 
-      jest.spyOn(mockPaymentService, 'getPayment').mockResolvedValue(mockPayment);
-      jest.spyOn(mockCartService, 'getCart').mockResolvedValue(mockCart);
-      jest.spyOn(mockPaymentMethodService, 'get').mockResolvedValue(mockPaymentMethod);
-      jest.spyOn(mockPaymentApi, 'createPayment').mockResolvedValue(mockCkoResponse);
-      jest.spyOn(mockPaymentService, 'updatePayment').mockResolvedValue(mockUpdatedPayment);
-      jest.spyOn(mockProcessStoredPaymentConverter, 'convertRequest').mockReturnValue({
+      vi.spyOn(mockPaymentService, 'getPayment').mockResolvedValue(mockPayment);
+      vi.spyOn(mockCartService, 'getCart').mockResolvedValue(mockCart);
+      vi.spyOn(mockPaymentMethodService, 'get').mockResolvedValue(mockPaymentMethod);
+      vi.spyOn(mockPaymentApi, 'createPayment').mockResolvedValue(mockCkoResponse);
+      vi.spyOn(mockPaymentService, 'updatePayment').mockResolvedValue(mockUpdatedPayment);
+      vi.spyOn(mockProcessStoredPaymentConverter, 'convertRequest').mockReturnValue({
         amount: 1000,
         currency: 'EUR',
         source: {
@@ -389,7 +389,7 @@ describe('CkoStoredPaymentMethodService', () => {
           id: 'token-1',
         },
       } as CkoPaymentRequest);
-      jest.spyOn(mockProcessStoredPaymentConverter, 'convertResponse').mockReturnValue({
+      vi.spyOn(mockProcessStoredPaymentConverter, 'convertResponse').mockReturnValue({
         status: 'Declined',
       } as ProcessStoredPaymentResponseDTO);
 
@@ -436,11 +436,11 @@ describe('CkoStoredPaymentMethodService', () => {
         },
       } as unknown as PaymentMethod;
 
-      jest.spyOn(mockPaymentService, 'getPayment').mockResolvedValue(mockPayment);
-      jest.spyOn(mockCartService, 'getCart').mockResolvedValue(mockCart);
-      jest.spyOn(mockPaymentMethodService, 'get').mockResolvedValue(mockPaymentMethod);
-      jest.spyOn(mockPaymentApi, 'createPayment').mockRejectedValue(new Error('CKO payment failed'));
-      jest.spyOn(mockProcessStoredPaymentConverter, 'convertRequest').mockReturnValue({
+      vi.spyOn(mockPaymentService, 'getPayment').mockResolvedValue(mockPayment);
+      vi.spyOn(mockCartService, 'getCart').mockResolvedValue(mockCart);
+      vi.spyOn(mockPaymentMethodService, 'get').mockResolvedValue(mockPaymentMethod);
+      vi.spyOn(mockPaymentApi, 'createPayment').mockRejectedValue(new Error('CKO payment failed'));
+      vi.spyOn(mockProcessStoredPaymentConverter, 'convertRequest').mockReturnValue({
         amount: 1000,
         currency: 'EUR',
         source: {
@@ -466,7 +466,7 @@ describe('CkoStoredPaymentMethodService', () => {
         version: 1,
       } as Payment;
 
-      jest.spyOn(mockPaymentService, 'getPayment').mockResolvedValue(mockPayment);
+      vi.spyOn(mockPaymentService, 'getPayment').mockResolvedValue(mockPayment);
 
       // Act
       const result = await service.confirmStoredPayment({
@@ -489,7 +489,7 @@ describe('CkoStoredPaymentMethodService', () => {
         version: 1,
       } as Payment;
 
-      jest.spyOn(mockPaymentService, 'getPayment').mockResolvedValue(mockPayment);
+      vi.spyOn(mockPaymentService, 'getPayment').mockResolvedValue(mockPayment);
 
       // Act
       const result = await service.confirmStoredPayment({
@@ -527,11 +527,11 @@ describe('CkoStoredPaymentMethodService', () => {
         type: 'card',
       } as CkoInstrument;
 
-      jest.spyOn(mockCartService, 'getCart').mockResolvedValue(mockCart);
-      jest.spyOn(mockPaymentMethodService, 'get').mockResolvedValue(mockPaymentMethod);
-      jest.spyOn(mockPaymentMethodService, 'delete').mockResolvedValue(undefined as unknown as PaymentMethod);
-      jest.spyOn(mockInstrumentApi, 'getInstrument').mockResolvedValue(mockInstrument);
-      jest.spyOn(mockInstrumentApi, 'deleteInstrument').mockResolvedValue(undefined as unknown as void);
+      vi.spyOn(mockCartService, 'getCart').mockResolvedValue(mockCart);
+      vi.spyOn(mockPaymentMethodService, 'get').mockResolvedValue(mockPaymentMethod);
+      vi.spyOn(mockPaymentMethodService, 'delete').mockResolvedValue(undefined as unknown as PaymentMethod);
+      vi.spyOn(mockInstrumentApi, 'getInstrument').mockResolvedValue(mockInstrument);
+      vi.spyOn(mockInstrumentApi, 'deleteInstrument').mockResolvedValue(undefined as unknown as void);
 
       // Act
       await service.deleteStoredPaymentMethod('spm-1');
@@ -561,10 +561,10 @@ describe('CkoStoredPaymentMethodService', () => {
         token: undefined,
       } as unknown as PaymentMethod;
 
-      jest.spyOn(mockCartService, 'getCart').mockResolvedValue(mockCart);
-      jest.spyOn(mockPaymentMethodService, 'get').mockResolvedValue(mockPaymentMethod);
-      jest.spyOn(mockPaymentMethodService, 'delete').mockResolvedValue(undefined as unknown as PaymentMethod);
-      jest.spyOn(mockInstrumentApi, 'deleteInstrument').mockResolvedValue(undefined as unknown as void);
+      vi.spyOn(mockCartService, 'getCart').mockResolvedValue(mockCart);
+      vi.spyOn(mockPaymentMethodService, 'get').mockResolvedValue(mockPaymentMethod);
+      vi.spyOn(mockPaymentMethodService, 'delete').mockResolvedValue(undefined as unknown as PaymentMethod);
+      vi.spyOn(mockInstrumentApi, 'deleteInstrument').mockResolvedValue(undefined as unknown as void);
 
       // Act
       await service.deleteStoredPaymentMethod('spm-1');
@@ -590,10 +590,10 @@ describe('CkoStoredPaymentMethodService', () => {
         },
       } as unknown as PaymentMethod;
 
-      jest.spyOn(mockCartService, 'getCart').mockResolvedValue(mockCart);
-      jest.spyOn(mockPaymentMethodService, 'get').mockResolvedValue(mockPaymentMethod);
-      jest.spyOn(mockPaymentMethodService, 'delete').mockResolvedValue(undefined as unknown as PaymentMethod);
-      jest.spyOn(mockInstrumentApi, 'getInstrument').mockRejectedValue(new Error('Instrument not found'));
+      vi.spyOn(mockCartService, 'getCart').mockResolvedValue(mockCart);
+      vi.spyOn(mockPaymentMethodService, 'get').mockResolvedValue(mockPaymentMethod);
+      vi.spyOn(mockPaymentMethodService, 'delete').mockResolvedValue(undefined as unknown as PaymentMethod);
+      vi.spyOn(mockInstrumentApi, 'getInstrument').mockRejectedValue(new Error('Instrument not found'));
 
       // Act
       await service.deleteStoredPaymentMethod('spm-1');
@@ -618,9 +618,9 @@ describe('CkoStoredPaymentMethodService', () => {
         },
       } as unknown as PaymentMethod;
 
-      jest.spyOn(mockCartService, 'getCart').mockResolvedValue(mockCart);
-      jest.spyOn(mockPaymentMethodService, 'get').mockResolvedValue(mockPaymentMethod);
-      jest.spyOn(mockPaymentMethodService, 'delete').mockRejectedValue(new Error('CT deletion failed'));
+      vi.spyOn(mockCartService, 'getCart').mockResolvedValue(mockCart);
+      vi.spyOn(mockPaymentMethodService, 'get').mockResolvedValue(mockPaymentMethod);
+      vi.spyOn(mockPaymentMethodService, 'delete').mockRejectedValue(new Error('CT deletion failed'));
 
       // Act & Assert
       await expect(service.deleteStoredPaymentMethod('spm-1')).rejects.toThrow('CT deletion failed');

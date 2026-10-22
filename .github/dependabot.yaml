@@ -9,6 +9,11 @@ updates:
         update-types:
           - "minor"
           - "patch"
+    ignore:
+      # Keep @types/node on the same major as the Node runtime (24.x, see .nvmrc).
+      - dependency-name: "@types/node"
+        update-types:
+          - "version-update:semver-major"
     schedule:
       interval: "daily"
     open-pull-requests-limit: 10
@@ -21,6 +26,11 @@ updates:
         update-types:
           - "minor"
           - "patch"
+    ignore:
+      # Keep @types/node on the same major as the Node runtime (24.x, see .nvmrc).
+      - dependency-name: "@types/node"
+        update-types:
+          - "version-update:semver-major"
     schedule:
       interval: "daily"
     open-pull-requests-limit: 10

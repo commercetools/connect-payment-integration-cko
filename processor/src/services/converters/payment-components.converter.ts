@@ -48,6 +48,7 @@ export class PaymentComponentsConverter {
           type: 'vipps',
         },
       ],
+      express: [],
     };
   }
 }

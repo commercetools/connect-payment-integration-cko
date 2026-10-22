@@ -19,6 +19,19 @@ export const CkoChannelConfigSchema = Type.Object({
   /** Secret API key for server-side operations */
   secretKey: Type.String({ minLength: 1 }),
 
+  /**
+   * Checkout.com client ID (`cli_...`) of this merchant for the configured environment.
+   * Used to derive the merchant-specific sub-domain (MSSD): first 8 characters without `cli_`.
+   * Optional: when omitted the shared Checkout.com hosts are used (merchants created before 2026-10-01).
+   */
+  clientId: Type.Optional(Type.String({ minLength: 1 })),
+
+  /** Explicit Checkout.com API base URL override (e.g. https://abcd1234.api.checkout.com) */
+  apiBaseUrl: Type.Optional(Type.String({ minLength: 1 })),
+
+  /** Explicit Checkout.com Access (OAuth) base URL override (e.g. https://abcd1234.access.checkout.com) */
+  accessBaseUrl: Type.Optional(Type.String({ minLength: 1 })),
+
   /** HMAC secret key for webhook signature validation */
   hmacKey: Type.String({ minLength: 1 }),
 
@@ -115,6 +128,9 @@ export const AppConfigSchema = Type.Object({
 
   /** CommerceTools session service URL */
   sessionUrl: UrlString(),
+
+  /** CommerceTools checkout service URL */
+  checkoutUrl: UrlString(),
 
   // Application Configuration
   /** Timeout for health check endpoints (milliseconds) */

@@ -1,11 +1,11 @@
-import { describe, test, expect, beforeEach, jest } from '@jest/globals';
+import { beforeEach, describe, expect, type Mock, type Mocked, type MockInstance, test, vi } from 'vitest';
 import { CkoConfigHook } from '../../../../src/libs/fastify/hooks/cko-config.hook';
 import { Cart, CommercetoolsCartService, CommercetoolsOrderService, Order } from '@commercetools/connect-payments-sdk';
 import { FastifyRequest } from 'fastify';
 import * as Context from '../../../../src/libs/fastify/context/context';
 
 // Mocks
-jest.mock('../../../../src/config/config', () => {
+vi.mock('../../../../src/config/config', () => {
   const mockConfigData = {
     projectKey: 'test-project',
     clientId: 'test-client-id',
@@ -15,6 +15,7 @@ jest.mock('../../../../src/config/config', () => {
     authUrl: 'https://test.auth.url',
     apiUrl: 'https://test.api.url',
     sessionUrl: 'https://test.session.url',
+    checkoutUrl: 'https://test.checkout.url',
     healthCheckTimeout: 5000,
     loggerLevel: 'info',
     merchantReturnUrl: 'https://test.return.url',
@@ -31,26 +32,26 @@ jest.mock('../../../../src/config/config', () => {
 
   return {
     config: mockConfigData,
-    getConfig: jest.fn(() => mockConfigData),
-    hasMultiChannelConfig: jest.fn(() => false),
+    getConfig: vi.fn(() => mockConfigData),
+    hasMultiChannelConfig: vi.fn(() => false),
   };
 });
 
-jest.mock('@lib/logger', () => ({
+vi.mock('@lib/logger', () => ({
   log: {
-    debug: jest.fn(),
-    warn: jest.fn(),
-    info: jest.fn(),
-    error: jest.fn(),
+    debug: vi.fn(),
+    warn: vi.fn(),
+    info: vi.fn(),
+    error: vi.fn(),
   },
 }));
 
 describe('CkoConfigHook', () => {
   let hook: CkoConfigHook;
-  let mockCartService: jest.Mocked<CommercetoolsCartService>;
-  let mockOrderService: jest.Mocked<CommercetoolsOrderService>;
-  let mockUpdateRequestContext: jest.SpiedFunction<typeof Context.updateRequestContext>;
-  let mockGetConfig: jest.Mock;
+  let mockCartService: Mocked<CommercetoolsCartService>;
+  let mockOrderService: Mocked<CommercetoolsOrderService>;
+  let mockUpdateRequestContext: MockInstance<typeof Context.updateRequestContext>;
+  let mockGetConfig: Mock;
 
   const mockCart: Cart = {
     id: 'cart-123',
@@ -77,18 +78,18 @@ describe('CkoConfigHook', () => {
   } as any;
 
   beforeEach(async () => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     const configModule = await import('../../../../src/config/config');
-    mockGetConfig = configModule.getConfig as jest.Mock;
+    mockGetConfig = configModule.getConfig as Mock;
 
     mockCartService = {
-      getCart: jest.fn(),
-      getCartByPaymentId: jest.fn(),
+      getCart: vi.fn(),
+      getCartByPaymentId: vi.fn(),
     } as any;
 
     mockOrderService = {
-      getOrderByPaymentId: jest.fn(),
+      getOrderByPaymentId: vi.fn(),
     } as any;
 
     hook = new CkoConfigHook({
@@ -96,7 +97,7 @@ describe('CkoConfigHook', () => {
       orderService: mockOrderService,
     });
 
-    mockUpdateRequestContext = jest.spyOn(Context, 'updateRequestContext').mockImplementation(() => {});
+    mockUpdateRequestContext = vi.spyOn(Context, 'updateRequestContext').mockImplementation(() => {});
   });
 
   test('should skip resolution when single-channel mode', async () => {
@@ -116,10 +117,10 @@ describe('CkoConfigHook', () => {
   test('should use default config when channel key extraction fails', async () => {
     mockGetConfig.mockReturnValue({
       hasMultiChannelConfig: () => true,
-      getChannelKey: jest.fn<() => Promise<string>>().mockRejectedValue(new Error('JSONata evaluation failed')),
+      getChannelKey: vi.fn<() => Promise<string>>().mockRejectedValue(new Error('JSONata evaluation failed')),
     } as any);
 
-    jest.spyOn(Context, 'getCartIdFromContext').mockReturnValue('cart-123');
+    vi.spyOn(Context, 'getCartIdFromContext').mockReturnValue('cart-123');
     mockCartService.getCart.mockResolvedValue(mockCart);
 
     const request = { url: '/some-endpoint' } as FastifyRequest;
@@ -135,7 +136,7 @@ describe('CkoConfigHook', () => {
       const channelKey = 'channel-de';
       mockGetConfig.mockReturnValue({
         hasMultiChannelConfig: () => true,
-        getChannelKey: jest.fn<() => Promise<string>>().mockResolvedValue(channelKey),
+        getChannelKey: vi.fn<() => Promise<string>>().mockResolvedValue(channelKey),
       } as any);
 
       mockCartService.getCartByPaymentId.mockResolvedValue(mockCart);
@@ -156,7 +157,7 @@ describe('CkoConfigHook', () => {
       const channelKey = 'channel-fr';
       mockGetConfig.mockReturnValue({
         hasMultiChannelConfig: () => true,
-        getChannelKey: jest.fn<() => Promise<string>>().mockResolvedValue(channelKey),
+        getChannelKey: vi.fn<() => Promise<string>>().mockResolvedValue(channelKey),
       } as any);
 
       mockCartService.getCartByPaymentId.mockRejectedValue(new Error('Cart not found'));
@@ -178,7 +179,7 @@ describe('CkoConfigHook', () => {
     test('should use default config when neither cart nor order found', async () => {
       mockGetConfig.mockReturnValue({
         hasMultiChannelConfig: () => true,
-        getChannelKey: jest.fn<() => Promise<string>>(),
+        getChannelKey: vi.fn<() => Promise<string>>(),
       } as any);
 
       mockCartService.getCartByPaymentId.mockRejectedValue(new Error('Cart not found'));
@@ -198,7 +199,7 @@ describe('CkoConfigHook', () => {
     test('should handle missing payment ID in params', async () => {
       mockGetConfig.mockReturnValue({
         hasMultiChannelConfig: () => true,
-        getChannelKey: jest.fn<() => Promise<string>>(),
+        getChannelKey: vi.fn<() => Promise<string>>(),
       } as any);
 
       const request = {
@@ -219,7 +220,7 @@ describe('CkoConfigHook', () => {
       const channelKey = 'channel-es';
       mockGetConfig.mockReturnValue({
         hasMultiChannelConfig: () => true,
-        getChannelKey: jest.fn<() => Promise<string>>().mockResolvedValue(channelKey),
+        getChannelKey: vi.fn<() => Promise<string>>().mockResolvedValue(channelKey),
       } as any);
 
       mockCartService.getCartByPaymentId.mockResolvedValue(mockCart);
@@ -247,7 +248,7 @@ describe('CkoConfigHook', () => {
       const channelKey = 'channel-it';
       mockGetConfig.mockReturnValue({
         hasMultiChannelConfig: () => true,
-        getChannelKey: jest.fn<() => Promise<string>>().mockResolvedValue(channelKey),
+        getChannelKey: vi.fn<() => Promise<string>>().mockResolvedValue(channelKey),
       } as any);
 
       mockCartService.getCartByPaymentId.mockResolvedValue(mockCart);
@@ -276,10 +277,10 @@ describe('CkoConfigHook', () => {
       const channelKey = 'channel-nl';
       mockGetConfig.mockReturnValue({
         hasMultiChannelConfig: () => true,
-        getChannelKey: jest.fn<() => Promise<string>>().mockResolvedValue(channelKey),
+        getChannelKey: vi.fn<() => Promise<string>>().mockResolvedValue(channelKey),
       } as any);
 
-      jest.spyOn(Context, 'getCartIdFromContext').mockReturnValue('cart-session-123');
+      vi.spyOn(Context, 'getCartIdFromContext').mockReturnValue('cart-session-123');
       mockCartService.getCart.mockResolvedValue(mockCart);
 
       const request = {
@@ -296,10 +297,10 @@ describe('CkoConfigHook', () => {
     test('should use default config when cart ID not in context', async () => {
       mockGetConfig.mockReturnValue({
         hasMultiChannelConfig: () => true,
-        getChannelKey: jest.fn<() => Promise<string>>(),
+        getChannelKey: vi.fn<() => Promise<string>>(),
       } as any);
 
-      jest.spyOn(Context, 'getCartIdFromContext').mockReturnValue(undefined as any);
+      vi.spyOn(Context, 'getCartIdFromContext').mockReturnValue(undefined as any);
 
       const request = {
         url: '/operations/payment-sessions',
@@ -315,10 +316,10 @@ describe('CkoConfigHook', () => {
     test('should use default config when cart retrieval fails', async () => {
       mockGetConfig.mockReturnValue({
         hasMultiChannelConfig: () => true,
-        getChannelKey: jest.fn<() => Promise<string>>(),
+        getChannelKey: vi.fn<() => Promise<string>>(),
       } as any);
 
-      jest.spyOn(Context, 'getCartIdFromContext').mockReturnValue('cart-invalid');
+      vi.spyOn(Context, 'getCartIdFromContext').mockReturnValue('cart-invalid');
       mockCartService.getCart.mockRejectedValue(new Error('Cart not found'));
 
       const request = {

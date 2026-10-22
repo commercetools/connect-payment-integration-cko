@@ -140,6 +140,24 @@ export interface PaymentEnabler {
   getStoredPaymentMethods: ({ allowedMethodTypes }: { allowedMethodTypes: string[] }) => Promise<{
     storedPaymentMethods?: StoredPaymentMethod[];
   }>;
+
+  /**
+   * Creates an express payment builder of the specified type.
+   *
+   * Express checkout is not supported by the Checkout.com connector, so this always rejects.
+   *
+   * @param type - The type of the express payment builder
+   * @returns A promise that resolves to the express payment builder
+   * @throws {Error} If the express payment builder cannot be created
+   */
+  createExpressBuilder: (type: string) => Promise<PaymentExpressBuilder | never>;
+
+  /**
+   * Indicates to the processor whether the payment method details should be stored (tokenized).
+   *
+   * @param enabled - `true` if the user wants to store the payment method details, `false` otherwise
+   */
+  setStorePaymentDetails(enabled: boolean): void;
 }
 
 /**
@@ -321,6 +339,11 @@ export type EnablerOptions = {
    * @default 'en-US'
    */
   locale?: string;
+
+  /**
+   * Country code for the payment (ISO 3166-1 alpha-2, e.g., 'US', 'ES').
+   */
+  countryCode?: string;
 
   /**
    * Callback invoked when additional user action is required.
@@ -772,4 +795,95 @@ export interface PaymentDropinBuilder {
    * @returns Configured drop-in component
    */
   build(config: DropinOptions): DropinComponent;
+}
+
+/**
+ * Express checkout component.
+ *
+ * Express checkout is not supported by the Checkout.com connector. These types only
+ * satisfy the Payment Enabler contract.
+ */
+export interface ExpressComponent {
+  mount(selector: string): void;
+}
+
+export type ExpressAddressData = {
+  country: string;
+  firstName?: string;
+  lastName?: string;
+  streetName?: string;
+  streetNumber?: string;
+  additionalStreetInfo?: string;
+  region?: string;
+  postalCode?: string;
+  city?: string;
+  phone?: string;
+  email?: string;
+};
+
+type OnclickResponse = {
+  sessionId: string;
+};
+
+export type OnComplete = (opts: {
+  isSuccess: boolean;
+  paymentReference: string;
+  method: {
+    type: string;
+  };
+}) => void;
+
+export type CTAmount = {
+  centAmount: number;
+  currencyCode: string;
+  fractionDigits: number;
+};
+
+export type ExpressShippingOptionData = {
+  id: string;
+  name: string;
+  description?: string;
+  isSelected?: boolean;
+  amount: CTAmount;
+};
+
+export type ExpressOptions = {
+  /**
+   * A list of ISO 3166 country codes for limiting payments to cards from specific countries.
+   */
+  allowedCountries?: string[];
+  /**
+   * A callback function called after the pay button click. The response includes a sessionId to initialize the payment attempt.
+   */
+  onPayButtonClick: () => Promise<OnclickResponse>;
+  /**
+   * A callback function that receives an address when the buyer selects a shipping address in the express checkout pop up.
+   * @param address The address received.
+   */
+  onShippingAddressSelected: (opts: { address: ExpressAddressData }) => Promise<void>;
+  /**
+   * A callback function that retrieves the list of available shipping methods.
+   * @param address The address to fetch available shipping methods for.
+   */
+  getShippingMethods: (opts: { address: ExpressAddressData }) => Promise<ExpressShippingOptionData[]>;
+  /**
+   * A callback function that receives the shipping method selected by the buyer in the express checkout pop up.
+   * @param shippingMethod The selected shipping method.
+   */
+  onShippingMethodSelected: (opts: { shippingMethod: { id: string } }) => Promise<void>;
+  /**
+   * A callback called when a payment is authorized.
+   * @param opts - Authorization event from the PSP, along with the formatted shipping and billing addresses
+   */
+  onPaymentSubmit: (opts: { shippingAddress: ExpressAddressData; billingAddress: ExpressAddressData }) => Promise<void>;
+  onComplete?: OnComplete;
+
+  initialAmount: CTAmount;
+};
+
+/**
+ * Builder for creating express checkout components.
+ */
+export interface PaymentExpressBuilder {
+  build(config: ExpressOptions): ExpressComponent;
 }

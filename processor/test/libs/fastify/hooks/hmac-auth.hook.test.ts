@@ -1,10 +1,10 @@
-import { describe, test, expect, beforeEach, jest } from '@jest/globals';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { HmacAuthHook } from '../../../../src/libs/fastify/hooks/hmac-auth.hook';
 import { ErrorAuthErrorResponse } from '@commercetools/connect-payments-sdk';
 import crypto from 'crypto';
 
 // Mocks
-jest.mock('../../../../src/config/config', () => {
+vi.mock('../../../../src/config/config', () => {
   const mockConfigData = {
     projectKey: 'test-project',
     clientId: 'test-client-id',
@@ -14,6 +14,7 @@ jest.mock('../../../../src/config/config', () => {
     authUrl: 'https://test.auth.url',
     apiUrl: 'https://test.api.url',
     sessionUrl: 'https://test.session.url',
+    checkoutUrl: 'https://test.checkout.url',
     healthCheckTimeout: 5000,
     loggerLevel: 'info',
     merchantReturnUrl: 'https://test.return.url',
@@ -30,20 +31,20 @@ jest.mock('../../../../src/config/config', () => {
 
   return {
     config: mockConfigData,
-    getConfig: jest.fn(() => ({
+    getConfig: vi.fn(() => ({
       ...mockConfigData,
       getHmacKey: () => 'test-hmac-key',
     })),
-    hasMultiChannelConfig: jest.fn(() => false),
+    hasMultiChannelConfig: vi.fn(() => false),
   };
 });
 
-jest.mock('@lib/logger', () => ({
+vi.mock('@lib/logger', () => ({
   log: {
-    debug: jest.fn(),
-    warn: jest.fn(),
-    info: jest.fn(),
-    error: jest.fn(),
+    debug: vi.fn(),
+    warn: vi.fn(),
+    info: vi.fn(),
+    error: vi.fn(),
   },
 }));
 
@@ -51,7 +52,7 @@ describe('HmacAuthHook', () => {
   let hook: HmacAuthHook;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     hook = new HmacAuthHook();
   });
 

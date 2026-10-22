@@ -2,21 +2,21 @@ import { CkoEventType, CkoWebhookEvent } from '../../../src/clients/types/webhoo
 import { UnsupportedNotificationError } from '../../../src/errors/cko-api.error';
 import { getConfig } from '../../../src/config/config';
 import { NotificationConverter } from '../../../src/services/converters/notification.converter';
-import { beforeEach, describe, expect, jest, test } from '@jest/globals';
+import { beforeEach, describe, expect, type MockedFunction, test, vi } from 'vitest';
 
-jest.mock('../../../src/config/config');
-jest.mock('../../../src/helpers/method-name.helper', () => ({
-  convertPaymentMethodFromCkoFormat: jest.fn((method: string) => `converted_${method}`),
+vi.mock('../../../src/config/config');
+vi.mock('../../../src/helpers/method-name.helper', () => ({
+  convertPaymentMethodFromCkoFormat: vi.fn((method: string) => `converted_${method}`),
 }));
 
-const mockGetConfig = getConfig as jest.MockedFunction<typeof getConfig>;
+const mockGetConfig = getConfig as MockedFunction<typeof getConfig>;
 
 describe('NotificationConverter', () => {
   let converter: NotificationConverter;
 
   beforeEach(() => {
     converter = new NotificationConverter();
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   const createMockEvent = (type: CkoEventType, overrides: Partial<CkoWebhookEvent> = {}): CkoWebhookEvent =>

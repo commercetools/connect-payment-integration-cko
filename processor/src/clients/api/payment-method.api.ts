@@ -10,7 +10,7 @@ export class PaymentMethodsApi extends CkoBaseApi {
 
   public async getPaymentMethods(): Promise<CkoGetPaymentMethodsResponse> {
     const channelId = getConfig().getChannelId();
-    const url = new URL(this.buildResourceUrl(getConfig().ckoEnvironment, ApiResources.PAYMENT_METHODS));
+    const url = new URL(this.buildResourceUrl(ApiResources.PAYMENT_METHODS));
     url.searchParams.append('processing_channel_id', channelId);
 
     return await this.executeCall<CkoGetPaymentMethodsResponse>({

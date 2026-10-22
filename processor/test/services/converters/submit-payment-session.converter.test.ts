@@ -2,10 +2,10 @@ import { SubmitPaymentSessionConverter } from '../../../src/services/converters/
 import { Payment } from '@commercetools/connect-payments-sdk';
 import { SubmitPaymentSessionResponse } from '../../../src/clients/types/payment-session.type';
 import { getConfig } from '../../../src/config/config';
-import { beforeEach, describe, expect, jest, test } from '@jest/globals';
+import { beforeEach, describe, expect, type MockedFunction, test, vi } from 'vitest';
 
 // Mocks
-jest.mock('../../../src/config/config', () => {
+vi.mock('../../../src/config/config', () => {
   const mockConfigData = {
     projectKey: 'test-project',
     clientId: 'test-client-id',
@@ -15,6 +15,7 @@ jest.mock('../../../src/config/config', () => {
     authUrl: 'https://test.auth.url',
     apiUrl: 'https://test.api.url',
     sessionUrl: 'https://test.session.url',
+    checkoutUrl: 'https://test.checkout.url',
     healthCheckTimeout: 5000,
     loggerLevel: 'info',
     merchantReturnUrl: 'https://test.return.url',
@@ -31,12 +32,12 @@ jest.mock('../../../src/config/config', () => {
 
   return {
     config: mockConfigData,
-    getConfig: jest.fn(() => mockConfigData),
-    hasMultiChannelConfig: jest.fn(() => false),
+    getConfig: vi.fn(() => mockConfigData),
+    hasMultiChannelConfig: vi.fn(() => false),
   };
 });
 
-const mockGetConfig = getConfig as jest.MockedFunction<typeof getConfig>;
+const mockGetConfig = getConfig as MockedFunction<typeof getConfig>;
 
 describe('SubmitPaymentSessionConverter', () => {
   let converter: SubmitPaymentSessionConverter;
@@ -53,7 +54,7 @@ describe('SubmitPaymentSessionConverter', () => {
 
   beforeEach(() => {
     converter = new SubmitPaymentSessionConverter();
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('convertRequest', () => {

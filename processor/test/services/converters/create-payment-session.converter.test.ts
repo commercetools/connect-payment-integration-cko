@@ -8,11 +8,11 @@ import {
 } from '../../../src/libs/fastify/context/context';
 import { paymentSDK } from '../../../src/payment-sdk';
 import { PaymentSessionResponse } from '../../../src/clients/types/payment-session.type';
-import { beforeEach, describe, expect, jest, test } from '@jest/globals';
+import { beforeEach, describe, expect, type Mock, type MockedFunction, test, vi } from 'vitest';
 import { getConfig } from '../../../src/config/config';
 
 // Mocks
-jest.mock('../../../src/config/config', () => {
+vi.mock('../../../src/config/config', () => {
   const mockConfigData = {
     projectKey: 'test-project',
     clientId: 'test-client-id',
@@ -22,6 +22,7 @@ jest.mock('../../../src/config/config', () => {
     authUrl: 'https://test.auth.url',
     apiUrl: 'https://test.api.url',
     sessionUrl: 'https://test.session.url',
+    checkoutUrl: 'https://test.checkout.url',
     healthCheckTimeout: 5000,
     loggerLevel: 'info',
     merchantReturnUrl: 'https://test.return.url',
@@ -38,12 +39,12 @@ jest.mock('../../../src/config/config', () => {
 
   return {
     config: mockConfigData,
-    getConfig: jest.fn(() => mockConfigData),
-    hasMultiChannelConfig: jest.fn(() => false),
+    getConfig: vi.fn(() => mockConfigData),
+    hasMultiChannelConfig: vi.fn(() => false),
   };
 });
 
-jest.mock('@lib/fastify/context/context', () => {
+vi.mock('@lib/fastify/context/context', () => {
   const mockRequestContextData = {
     correlationId: 'test-correlation-id',
     pathTemplate: '/test-path',
@@ -51,39 +52,35 @@ jest.mock('@lib/fastify/context/context', () => {
   };
 
   return {
-    getRequestContext: jest.fn(() => mockRequestContextData),
-    getCtSessionIdFromContext: jest.fn(),
-    getFutureOrderNumberFromContext: jest.fn(),
-    getProcessorUrlFromContext: jest.fn(),
-    getCkoConfigKeyFromContext: jest.fn(),
+    getRequestContext: vi.fn(() => mockRequestContextData),
+    getCtSessionIdFromContext: vi.fn(),
+    getFutureOrderNumberFromContext: vi.fn(),
+    getProcessorUrlFromContext: vi.fn(),
+    getCkoConfigKeyFromContext: vi.fn(),
   };
 });
-jest.mock('@app/payment-sdk');
-jest.mock('@app/helpers/method-name.helper', () => ({
-  convertAllowedPaymentMethodsToCkoFormat: jest.fn(() => ['card', 'paypal']),
+vi.mock('@app/payment-sdk');
+vi.mock('@app/helpers/method-name.helper', () => ({
+  convertAllowedPaymentMethodsToCkoFormat: vi.fn(() => ['card', 'paypal']),
 }));
-jest.mock('../../../src/services/converters/helper.converter', () => ({
-  convertAddress: jest.fn((address: Address) => ({
+vi.mock('../../../src/services/converters/helper.converter', () => ({
+  convertAddress: vi.fn((address: Address) => ({
     country: address?.country || 'US',
     address_line1: address?.streetName || 'Mock St',
     city: address?.city || 'Mock City',
     zip: address?.postalCode || '12345',
   })),
-  convertCartItems: jest.fn(() => [{ name: 'Mock Item', quantity: 1, unit_price: 10000, total_amount: 10000 }]),
-  convertEnableCapture: jest.fn(() => ({ capture: true })),
+  convertCartItems: vi.fn(() => [{ name: 'Mock Item', quantity: 1, unit_price: 10000, total_amount: 10000 }]),
+  convertEnableCapture: vi.fn(() => ({ capture: true })),
 }));
 
-const mockGetConfig = getConfig as jest.MockedFunction<typeof getConfig>;
-const mockGetCtSessionIdFromContext = getCtSessionIdFromContext as jest.MockedFunction<
-  typeof getCtSessionIdFromContext
->;
-const mockGetFutureOrderNumberFromContext = getFutureOrderNumberFromContext as jest.MockedFunction<
+const mockGetConfig = getConfig as MockedFunction<typeof getConfig>;
+const mockGetCtSessionIdFromContext = getCtSessionIdFromContext as MockedFunction<typeof getCtSessionIdFromContext>;
+const mockGetFutureOrderNumberFromContext = getFutureOrderNumberFromContext as MockedFunction<
   typeof getFutureOrderNumberFromContext
 >;
-const mockGetProcessorUrlFromContext = getProcessorUrlFromContext as jest.MockedFunction<
-  typeof getProcessorUrlFromContext
->;
-const mockGetRequestContext = getRequestContext as jest.MockedFunction<typeof getRequestContext>;
+const mockGetProcessorUrlFromContext = getProcessorUrlFromContext as MockedFunction<typeof getProcessorUrlFromContext>;
+const mockGetRequestContext = getRequestContext as MockedFunction<typeof getRequestContext>;
 
 describe('CreatePaymentSessionConverter', () => {
   let converter: CreatePaymentSessionConverter;
@@ -114,7 +111,7 @@ describe('CreatePaymentSessionConverter', () => {
 
   beforeEach(() => {
     converter = new CreatePaymentSessionConverter();
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     mockGetConfig.mockReturnValue({
       getChannelId: () => 'channel-id-123',
@@ -128,7 +125,7 @@ describe('CreatePaymentSessionConverter', () => {
       typeof getRequestContext
     >);
 
-    (paymentSDK.ctCartService.getOneShippingAddress as jest.Mock) = jest.fn(() => ({
+    (paymentSDK.ctCartService.getOneShippingAddress as Mock) = vi.fn(() => ({
       country: 'US',
       streetName: '456 Oak Ave',
       city: 'Los Angeles',
@@ -180,7 +177,7 @@ describe('CreatePaymentSessionConverter', () => {
     });
 
     test('should handle optional fields - no shipping address', () => {
-      (paymentSDK.ctCartService.getOneShippingAddress as jest.Mock).mockReturnValue(undefined);
+      (paymentSDK.ctCartService.getOneShippingAddress as Mock).mockReturnValue(undefined);
 
       const result = converter.convertRequest({ data: {}, cart: mockCart, payment: mockPayment });
 

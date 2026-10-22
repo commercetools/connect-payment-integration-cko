@@ -1,7 +1,7 @@
 import { getConfig } from '@app/config/config';
 import { CkoApiError } from '@app/errors/cko-api.error';
 import { log } from '@lib/logger';
-import { ApiBasePath, ApiRequestConfig, ApiResources } from '../types/api.type';
+import { ApiRequestConfig, ApiResources } from '../types/api.type';
 
 export abstract class CkoBaseApi {
   protected async executeCall<T>(options: ApiRequestConfig): Promise<T> {
@@ -19,8 +19,11 @@ export abstract class CkoBaseApi {
 
       log.info(`Called cko API ${options.method} ${options.url} - Status: ${res.status}`);
     } catch (e: unknown) {
+      // Error objects serialize as {}, so log the message and the cause (for example ENOTFOUND) explicitly.
       log.error('Error calling CKO API', {
         err: e,
+        errMessage: e instanceof Error ? e.message : String(e),
+        errCause: e instanceof Error && e.cause ? String(e.cause) : undefined,
         options: JSON.stringify(options),
       });
 
@@ -49,11 +52,8 @@ export abstract class CkoBaseApi {
     return jsonResponse as T;
   }
 
-  protected buildResourceUrl(environment: string, resource: ApiResources, resourceId?: string): string {
-    let url = ApiBasePath.SANDBOX.toString().concat(resource);
-    if (environment.toLowerCase() === 'production') {
-      url = ApiBasePath.PRODUCTION.toString().concat(resource);
-    }
+  protected buildResourceUrl(resource: ApiResources, resourceId?: string): string {
+    let url = getConfig().getApiBaseUrl().concat(resource);
 
     if (resourceId) {
       url = url.replace(/{resourceId}/g, resourceId);
