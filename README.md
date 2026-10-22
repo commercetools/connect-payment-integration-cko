@@ -2,6 +2,8 @@
 
 This repository contains a commercetools Checkout integration for [Checkout.com](https://www.checkout.com/). It uses the Checkout.com Flow web components. It supports payment sessions, stored payment methods, payment operations, and webhook handling.
 
+For the list of supported and missing features, see [FEATURES.md](FEATURES.md).
+
 ## Features
 
 - Payment components: Checkout.com Flow web components for cards, digital wallets (Apple Pay, Google Pay, PayPal), and regional payment methods (Klarna, SEPA, iDEAL, and others).
